@@ -20,6 +20,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.tooling.preview.Preview
+import com.dreamteam.bookworm.screens.LibraryScreen
+import com.dreamteam.bookworm.screens.ProfileScreen
+import com.dreamteam.bookworm.screens.SearchScreen
 
 enum class Tab(val label: String, val selectedIcon: ImageVector, val unselectedIcon: ImageVector) {
     Library("Library", Icons.AutoMirrored.Filled.LibraryBooks,
