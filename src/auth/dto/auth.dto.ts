@@ -13,3 +13,20 @@ export class RegisterUserDto {
   @IsEnum(Role)
   role: Role;
 }
+
+
+export class LoginUserDto {
+  @IsNotEmpty()
+  username: string;
+
+  @PasswordProperty()
+  password: string;
+}
+
+
+export class RefreshTokenDto {
+    @IsNotEmpty()
+    refreshToken: string;
+}
+
+

@@ -1,11 +1,11 @@
 import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from './schema/user.schema.js';
+import { User, UserType } from './schema/user.schema.js';
 import { Model } from 'mongoose';
-import { RegisterUserDto } from './dto/register.dto.js';
 import bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
-import { LoginUserDto } from './dto/login.dto.js';
+import { TokenPair, TokenService } from '@nestjs/authentication';
+import { LoginUserDto, RegisterUserDto } from './dto/auth.dto.js';
 
 @Injectable()
 export class AuthService {
@@ -14,9 +14,28 @@ export class AuthService {
 
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    private configService: ConfigService
+    private configService: ConfigService,
+    private readonly tokenService: TokenService,
   ) {
     this.saltRounds = Number(this.configService.get<number>("BCRYPT_SALT_ROUNDS")!);
+  }
+
+
+  async findById(userId: string): Promise<UserType | null> {
+    return await this.userModel.findById(userId);
+  }
+
+
+  async issueToken(user: UserType) {
+    return this.tokenService.issue(user._id.toString(), {
+      method: 'password',
+      claims: { amr: ['pwd'] },
+    });
+  }
+
+
+  async refreshToken(refreshToken: string): Promise<TokenPair> {
+    return this.tokenService.refresh(refreshToken);
   }
 
 
@@ -25,7 +44,7 @@ export class AuthService {
     const existingUser = await this.userModel.findOne({ username: registerUserDto.username });
 
     if(existingUser != null){
-      throw new ConflictException("Username already taken");
+      throw new ConflictException('Username already taken');
     };
 
     const salt = await bcrypt.genSalt(this.saltRounds);
@@ -41,7 +60,7 @@ export class AuthService {
   }
 
 
-  async validateLogin(username: string, password: string): Promise<User | null> {
+  async validateLogin(username: string, password: string): Promise<UserType | null> {
     const user = await this.userModel.findOne({ username: username });
 
     if(user == null){
@@ -65,7 +84,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid username or password");
     };
 
-    return user; // TODO: return JWT
+    return await this.issueToken(user);
   }
 }
     
