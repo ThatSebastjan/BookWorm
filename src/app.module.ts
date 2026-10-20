@@ -7,6 +7,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import databaseConfig, { DATABASE_CONFIG_KEY } from './config/database.config.js';
 import { AuthenticationModule } from '@nestjs/authentication';
 import { UserModule } from './user/user.module.js';
+import { ClassroomModule } from './classroom/classroom.module.js';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { UserModule } from './user/user.module.js';
 
     AuthModule,
     UserModule,
+    ClassroomModule,
   ],
   controllers: [AppController],
   providers: [AppService],

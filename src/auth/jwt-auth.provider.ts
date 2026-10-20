@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { AuthenticationRegistry, JwtBearerProvider, type JwtClaims } from '@nestjs/authentication';
 import { User } from './schema/user.schema.js';
-import { AuthService } from './auth.service.js';
+import { UserService } from '../user/user.service.js';
 
 
 @Injectable()
 export class JwtAuth extends JwtBearerProvider<User> {
   constructor(
-    private readonly authService: AuthService,
+    private readonly userService: UserService,
     registry: AuthenticationRegistry,
   ) {
     super({ realm: 'store' });
@@ -16,6 +16,6 @@ export class JwtAuth extends JwtBearerProvider<User> {
 
   // Called after the signature and claims checked out
   validate({ sub }: JwtClaims) {
-    return sub ? this.authService.findById(sub) : null;
+    return sub ? this.userService.findById(sub) : null;
   }
 }

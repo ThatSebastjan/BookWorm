@@ -21,11 +21,6 @@ export class AuthService {
   }
 
 
-  async findById(userId: string): Promise<UserType | null> {
-    return await this.userModel.findById(userId);
-  }
-
-
   async issueToken(user: UserType) {
     return this.tokenService.issue(user._id.toString(), {
       method: 'password',

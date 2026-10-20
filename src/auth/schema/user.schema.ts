@@ -2,7 +2,7 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Role } from '../../constants/api.enums.js';
 import { HydratedDocument } from 'mongoose';
 
-export type UserType = HydratedDocument<User>;
+export type UserType = HydratedDocument<User>; // This has _id prop
 
 @Schema()
 export class User {
