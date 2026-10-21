@@ -10,7 +10,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import com.dreamteam.bookworm.ui_components.BookWormTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
@@ -34,7 +34,7 @@ enum class Tab(val label: String, val selectedIcon: ImageVector, val unselectedI
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    BookWormTheme {
         var currentTab by rememberSaveable { mutableStateOf(Tab.Library) }
 
         Scaffold(
