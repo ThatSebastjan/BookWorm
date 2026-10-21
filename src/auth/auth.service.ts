@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { User, UserType } from './schema/user.schema.js';
 import { Model } from 'mongoose';
@@ -9,7 +13,6 @@ import { LoginUserDto, RegisterUserDto } from './dto/auth.dto.js';
 
 @Injectable()
 export class AuthService {
-
   saltRounds: number;
 
   constructor(
@@ -17,9 +20,10 @@ export class AuthService {
     private configService: ConfigService,
     private readonly tokenService: TokenService,
   ) {
-    this.saltRounds = Number(this.configService.get<number>("BCRYPT_SALT_ROUNDS")!);
+    this.saltRounds = Number(
+      this.configService.get<number>('BCRYPT_SALT_ROUNDS')!,
+    );
   }
-
 
   async issueToken(user: UserType) {
     return this.tokenService.issue(user._id.toString(), {
@@ -28,19 +32,18 @@ export class AuthService {
     });
   }
 
-
   async refreshToken(refreshToken: string): Promise<TokenPair> {
     return this.tokenService.refresh(refreshToken);
   }
 
-
   async register(registerUserDto: RegisterUserDto) {
-    
-    const existingUser = await this.userModel.findOne({ username: registerUserDto.username });
+    const existingUser = await this.userModel.findOne({
+      username: registerUserDto.username,
+    });
 
-    if(existingUser != null){
+    if (existingUser != null) {
       throw new ConflictException('Username already taken');
-    };
+    }
 
     const salt = await bcrypt.genSalt(this.saltRounds);
     const passwordHash = await bcrypt.hash(registerUserDto.password, salt);
@@ -54,32 +57,35 @@ export class AuthService {
     await newUser.save();
   }
 
-
-  async validateLogin(username: string, password: string): Promise<UserType | null> {
+  async validateLogin(
+    username: string,
+    password: string,
+  ): Promise<UserType | null> {
     const user = await this.userModel.findOne({ username: username });
 
-    if(user == null){
+    if (user == null) {
       return null;
     }
 
     const passwordValid = await bcrypt.compare(password, user.password);
 
-    if(!passwordValid){
+    if (!passwordValid) {
       return null;
     }
 
     return user;
   }
 
-
   async login(loginUserDto: LoginUserDto) {
-    const user = await this.validateLogin(loginUserDto.username, loginUserDto.password);
+    const user = await this.validateLogin(
+      loginUserDto.username,
+      loginUserDto.password,
+    );
 
-    if(user == null){
-      throw new UnauthorizedException("Invalid username or password");
-    };
+    if (user == null) {
+      throw new UnauthorizedException('Invalid username or password');
+    }
 
     return await this.issueToken(user);
   }
 }
-    

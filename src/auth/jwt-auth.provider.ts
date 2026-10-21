@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { AuthenticationRegistry, JwtBearerProvider, type JwtClaims } from '@nestjs/authentication';
+import {
+  AuthenticationRegistry,
+  JwtBearerProvider,
+  type JwtClaims,
+} from '@nestjs/authentication';
 import { User } from './schema/user.schema.js';
 import { UserService } from '../user/user.service.js';
-
 
 @Injectable()
 export class JwtAuth extends JwtBearerProvider<User> {

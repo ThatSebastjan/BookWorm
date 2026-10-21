@@ -7,7 +7,9 @@ import { JwtAuth } from './jwt-auth.provider.js';
 import { UserService } from '../user/user.service.js';
 
 @Module({
-  imports: [MongooseModule.forFeature([{ name: User.name, schema: UserSchema }])],
+  imports: [
+    MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+  ],
   controllers: [AuthController],
   providers: [AuthService, JwtAuth, UserService],
 })

@@ -6,7 +6,6 @@ export type UserType = HydratedDocument<User>; // This has _id prop
 
 @Schema()
 export class User {
-
   @Prop({ required: true })
   username: string;
 
@@ -19,13 +18,11 @@ export class User {
   @Prop({ required: true, default: Date.now })
   createdAt: Date;
 
-
   // TODO: add a ObjectId ref to profile schema once we have it
   /*
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Profile' })
   profile: Profile;
   */
-
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

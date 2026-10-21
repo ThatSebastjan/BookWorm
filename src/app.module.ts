@@ -4,7 +4,9 @@ import { AppService } from './app.service.js';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AuthModule } from './auth/auth.module.js';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import databaseConfig, { DATABASE_CONFIG_KEY } from './config/database.config.js';
+import databaseConfig, {
+  DATABASE_CONFIG_KEY,
+} from './config/database.config.js';
 import { AuthenticationModule } from '@nestjs/authentication';
 import { UserModule } from './user/user.module.js';
 import { ClassroomModule } from './classroom/classroom.module.js';

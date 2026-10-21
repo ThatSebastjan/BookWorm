@@ -5,14 +5,9 @@ import { InjectModel } from '@nestjs/mongoose';
 
 @Injectable()
 export class UserService {
-
-  constructor(
-    @InjectModel(User.name) private userModel: Model<User>,
-  ) {}
-
+  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
 
   async findById(userId: string): Promise<UserType | null> {
     return await this.userModel.findById(userId);
   }
-
 }

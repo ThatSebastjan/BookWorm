@@ -1,7 +1,13 @@
 import { applyDecorators } from '@nestjs/common';
-import { IsNotEmpty, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  Matches,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
-export function PasswordProperty(description = 'Password') {
+export function PasswordProperty(_description = 'Password') {
   return applyDecorators(
     IsString(),
     IsNotEmpty(),
