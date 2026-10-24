@@ -1,7 +1,7 @@
 package com.dreamteam.bookworm.ui_components
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -23,11 +23,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -45,11 +48,14 @@ fun BookWormTextField(
     enabled: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    isPassword: Boolean = false,
+    /** Shown under the field in red, e.g. "Enter your email". */
+    errorText: String? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
     val borderColor = when {
-        isError -> BookWormColors.Danger
+        isError || errorText != null -> BookWormColors.Danger
         focused -> BookWormColors.Primary
         else -> BookWormColors.TrackShadow
     }
@@ -71,6 +77,7 @@ fun BookWormTextField(
             keyboardOptions = keyboardOptions,
             keyboardActions = keyboardActions,
             interactionSource = interactionSource,
+            visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             modifier = Modifier.fillMaxWidth(),
             decorationBox = { inner ->
                 Box(
@@ -90,6 +97,9 @@ fun BookWormTextField(
                 }
             },
         )
+        if (errorText != null) {
+            Text(errorText, style = MaterialTheme.typography.bodySmall, color = BookWormColors.Danger)
+        }
     }
 }
 

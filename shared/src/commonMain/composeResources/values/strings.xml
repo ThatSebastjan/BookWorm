@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Navigation -->
+    <string name="nav_learn">Learn</string>
+    <string name="nav_library">Library</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_check">Check</string>
+    <string name="common_continue">Continue</string>
+    <string name="common_try_again">Try again</string>
+    <string name="common_locked">Locked</string>
+    <string name="common_error_title">Something went wrong</string>
+    <string name="common_error_body">Check your internet connection and try again.</string>
+
+    <plurals name="notes_count">
+        <item quantity="one">%1$d note</item>
+        <item quantity="other">%1$d notes</item>
+    </plurals>
+    <plurals name="flashcards_count">
+        <item quantity="one">%1$d flashcard</item>
+        <item quantity="other">%1$d flashcards</item>
+    </plurals>
+    <plurals name="stars_count">
+        <item quantity="one">%1$d star</item>
+        <item quantity="other">%1$d stars</item>
+    </plurals>
+    <plurals name="streak_days">
+        <item quantity="one">%1$d day streak</item>
+        <item quantity="other">%1$d day streak</item>
+    </plurals>
+
+    <!-- Library -->
+    <string name="library_title">Library</string>
+    <string name="library_subtitle">Notes and flashcards from your teachers</string>
+    <string name="library_status_mastered">Mastered</string>
+    <string name="library_status_new">New</string>
+    <string name="library_status_known">%1$d of %2$d known</string>
+
+    <!-- Learn -->
+    <string name="learn_change_subject">Change subject, currently %1$s</string>
+    <string name="learn_chapter_progress">Chapter %1$d · %2$d of %3$d done</string>
+    <string name="learn_notes">Notes</string>
+    <string name="learn_next_chapter">Next · Chapter %1$d</string>
+    <string name="learn_start">Start</string>
+    <string name="learn_lesson_done">%1$s, done</string>
+    <string name="learn_lesson_locked">%1$s, locked</string>
+    <string name="learn_lesson_start">Start lesson: %1$s</string>
+
+    <!-- Chapter -->
+    <string name="chapter_eyebrow">%1$s · Chapter %2$d</string>
+    <string name="chapter_tab_notes">Notes</string>
+    <string name="chapter_tab_flashcards">Flashcards</string>
+    <string name="chapter_notes_by">Notes by %1$s</string>
+    <string name="chapter_remember">Remember</string>
+    <string name="chapter_practise">Practise with flashcards</string>
+    <string name="chapter_card_of">Card %1$d of %2$d</string>
+    <string name="chapter_card_word">Word</string>
+    <string name="chapter_card_meaning">Meaning</string>
+    <string name="chapter_tap_to_flip">Tap to flip</string>
+    <string name="chapter_still_learning">Still learning</string>
+    <string name="chapter_got_it">Got it</string>
+    <string name="chapter_no_flashcards">No flashcards in this chapter yet.</string>
+
+    <!-- Lesson -->
+    <string name="lesson_close">Close lesson</string>
+    <string name="lesson_question_of">Question %1$d of %2$d</string>
+    <string name="lesson_type_choice">Choose the answer</string>
+    <string name="lesson_type_multi">Select all that apply</string>
+    <string name="lesson_type_multi_hint">There is more than one right answer.</string>
+    <string name="lesson_type_typed">Type the answer</string>
+    <string name="lesson_type_blank">Fill in the blank</string>
+    <string name="lesson_type_order">Put in order</string>
+    <string name="lesson_type_match">Match the pairs</string>
+    <string name="lesson_order_hint">Tap the items in order. Tap a slot to take it back.</string>
+    <string name="lesson_match_hint">Tap one on the left, then its partner on the right.</string>
+    <string name="lesson_numerator">Numerator, the top number</string>
+    <string name="lesson_denominator">Denominator, the bottom number</string>
+    <string name="lesson_your_answer">Your answer</string>
+    <string name="lesson_blank_empty">Empty blank</string>
+    <string name="lesson_blank_filled">Blank filled with %1$s. Tap to clear.</string>
+    <plurals name="lesson_correct_title">
+        <item quantity="one">Nice one! +%1$d star</item>
+        <item quantity="other">Nice one! +%1$d stars</item>
+    </plurals>
+    <string name="lesson_wrong_title">Not quite</string>
+    <string name="lesson_leave_title">Leave the lesson?</string>
+    <string name="lesson_leave_body">Your progress in this lesson won't be saved.</string>
+    <string name="lesson_leave_stay">Keep learning</string>
+    <string name="lesson_leave_confirm">Leave</string>
+    <string name="lesson_complete_title">Lesson complete!</string>
+    <string name="lesson_complete_score">%1$d of %2$d right</string>
+    <plurals name="lesson_complete_stars">
+        <item quantity="one">You earned %1$d star</item>
+        <item quantity="other">You earned %1$d stars</item>
+    </plurals>
+    <string name="lesson_finish">Done</string>
+
+    <!-- Profile -->
+    <string name="profile_grade">Grade %1$d</string>
+    <string name="profile_level">Level %1$d</string>
+    <string name="profile_stars_to_level">%1$d stars to Level %2$d</string>
+    <string name="profile_level_progress">%1$d percent of the way to level %2$d</string>
+    <string name="profile_day_streak">Day streak</string>
+    <string name="profile_stars_earned">Stars earned</string>
+    <string name="profile_lessons_done">Lessons done</string>
+    <string name="profile_this_week">This week</string>
+    <string name="profile_my_classes">My subjects</string>
+    <string name="profile_chapter_of">Chapter %1$d of %2$d</string>
+    <string name="profile_badges">Badges</string>
+    <string name="profile_badge_locked">%1$s (locked)</string>
+    <string name="profile_day_practised">%1$s, practised</string>
+    <string name="profile_day_not_yet">%1$s, not yet</string>
+    <string-array name="profile_weekday_initials">
+        <item>M</item>
+        <item>T</item>
+        <item>W</item>
+        <item>T</item>
+        <item>F</item>
+        <item>S</item>
+        <item>S</item>
+    </string-array>
+    <string-array name="profile_weekday_names">
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+        <item>Sunday</item>
+    </string-array>
+
+    <!-- Sign in -->
+    <string name="auth_login_title">Welcome back!</string>
+    <string name="auth_login_subtitle">Sign in to keep learning.</string>
+    <string name="auth_register_title">Create your account</string>
+    <string name="auth_register_subtitle">Ask your teacher for your class code.</string>
+    <string name="auth_name">Your name</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Password</string>
+    <string name="auth_class_code">Class code</string>
+    <string name="auth_class_code_placeholder">e.g. K7M2Q</string>
+    <string name="auth_login_button">Sign in</string>
+    <string name="auth_register_button">Create account</string>
+    <string name="auth_no_account">New to BookWorm?</string>
+    <string name="auth_go_register">Create an account</string>
+    <string name="auth_have_account">Already have an account?</string>
+    <string name="auth_go_login">Sign in</string>
+    <string name="auth_error_required">Please fill this in.</string>
+    <string name="auth_error_email">Enter a valid email address.</string>
+    <string name="auth_error_password_short">Use at least %1$d characters.</string>
+    <string name="auth_error_credentials">Wrong email or password.</string>
+    <string name="auth_error_email_taken">There is already an account with this email.</string>
+    <string name="auth_error_class_code">We couldn't find that class code. Check it with your teacher.</string>
+    <string name="auth_error_network">Couldn't connect. Check your internet and try again.</string>
+    <string name="auth_logout">Log out</string>
+    <string name="auth_logout_title">Log out?</string>
+    <string name="auth_logout_body">You can sign back in any time.</string>
+    <string name="auth_cancel">Cancel</string>
+
+    <!-- Lesson without content -->
+    <string name="lesson_not_ready_title">This lesson isn't ready yet</string>
+    <string name="lesson_not_ready_body">Your teacher is still writing the questions. Try another lesson for now.</string>
+
+    <!-- Joining a class -->
+    <string name="profile_classes">My classes</string>
+    <string name="profile_class_waiting">Waiting</string>
+    <string name="join_class_title">Join a class</string>
+    <string name="join_class_subtitle">Type the code your teacher gave you. You can also paste their join link.</string>
+    <string name="join_class_button">Join</string>
+    <string name="join_class_error_empty">Type your class code first.</string>
+    <string name="join_class_error_not_found">We couldn't find a class with that code. Check it with your teacher.</string>
+    <string name="join_class_error_already">You're already in this class.</string>
+    <string name="join_class_error_network">Couldn't connect. Check your internet and try again.</string>
+    <string name="join_class_joined_title">You joined %1$s!</string>
+    <string name="join_class_joined_body">Lessons from %1$s will show up in Learn and Library.</string>
+    <string name="join_class_waiting_title">Almost there!</string>
+    <string name="join_class_waiting_body">%1$s needs to let you in. The class will show up once they do.</string>
+    <string name="join_class_another">Join another</string>
+    <string name="join_class_done">Done</string>
+</resources>
