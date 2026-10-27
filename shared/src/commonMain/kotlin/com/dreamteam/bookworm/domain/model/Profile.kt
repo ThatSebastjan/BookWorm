@@ -2,7 +2,8 @@ package com.dreamteam.bookworm.domain.model
 
 data class StudentProfile(
     val name: String,
-    val grade: Int,
+    /** Grade of the student's first classroom that has one. */
+    val grade: Int?,
     val level: Int,
     val starsToNextLevel: Int,
     /** 0..1 progress towards the next level. */
@@ -13,6 +14,8 @@ data class StudentProfile(
     /** Seven entries, Monday first. */
     val week: List<DayActivity>,
     val classes: List<ClassProgress>,
+    /** Finished a lesson or went through flashcards today, so the streak is safe. */
+    val practisedToday: Boolean,
     val badges: List<Badge>,
 )
 
@@ -29,12 +32,14 @@ data class ClassProgress(
     val chapterCount: Int,
 )
 
+/** Something to earn: e.g. kind [BadgeKind.Streak] with [goal] 7 is a 7-day streak. */
 data class Badge(
-    val id: String,
-    val name: String,
     val kind: BadgeKind,
+    val goal: Int,
+    /** How far the student has got, up to [goal]. */
+    val progress: Int,
     val earned: Boolean,
 )
 
-/** Picks the badge icon; unknown kinds from the backend fall back to [Star]. */
-enum class BadgeKind { Star, Streak, Fractions, Quiz }
+/** What a badge is for; the app has a name and an icon for each. */
+enum class BadgeKind { FirstLesson, Lessons, Streak, ChapterQuiz, ChapterDone, Stars }

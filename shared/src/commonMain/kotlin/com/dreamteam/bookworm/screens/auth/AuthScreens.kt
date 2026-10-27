@@ -35,16 +35,15 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bookworm.shared.generated.resources.Res
-import bookworm.shared.generated.resources.auth_class_code
-import bookworm.shared.generated.resources.auth_class_code_placeholder
 import bookworm.shared.generated.resources.auth_email
-import bookworm.shared.generated.resources.auth_error_class_code
+import bookworm.shared.generated.resources.auth_error_invalid_details
 import bookworm.shared.generated.resources.auth_error_credentials
 import bookworm.shared.generated.resources.auth_error_email
 import bookworm.shared.generated.resources.auth_error_email_taken
 import bookworm.shared.generated.resources.auth_error_network
 import bookworm.shared.generated.resources.auth_error_password_short
 import bookworm.shared.generated.resources.auth_error_required
+import bookworm.shared.generated.resources.auth_error_wrong_role
 import bookworm.shared.generated.resources.auth_go_login
 import bookworm.shared.generated.resources.auth_go_register
 import bookworm.shared.generated.resources.auth_have_account
@@ -57,6 +56,7 @@ import bookworm.shared.generated.resources.auth_password
 import bookworm.shared.generated.resources.auth_register_button
 import bookworm.shared.generated.resources.auth_register_subtitle
 import bookworm.shared.generated.resources.auth_register_title
+import bookworm.shared.generated.resources.auth_surname
 import com.dreamteam.bookworm.di.LocalAppContainer
 import com.dreamteam.bookworm.domain.model.AuthFailure
 import com.dreamteam.bookworm.ui_components.BookWormButton
@@ -120,6 +120,13 @@ fun RegisterScreen(onLoginClick: () -> Unit) {
             errorText = state.nameError?.message(),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
         )
+        BookWormTextField(
+            state.surname, viewModel::setSurname, Modifier.fillMaxWidth(),
+            label = stringResource(Res.string.auth_surname),
+            enabled = enabled,
+            errorText = state.surnameError?.message(),
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Next),
+        )
         EmailField(state.email, viewModel::setEmail, state.emailError, enabled)
         BookWormTextField(
             state.password, viewModel::setPassword, Modifier.fillMaxWidth(),
@@ -127,15 +134,7 @@ fun RegisterScreen(onLoginClick: () -> Unit) {
             isPassword = true,
             enabled = enabled,
             errorText = state.passwordError?.message(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Next),
-        )
-        BookWormTextField(
-            state.classCode, viewModel::setClassCode, Modifier.fillMaxWidth(),
-            label = stringResource(Res.string.auth_class_code),
-            placeholder = stringResource(Res.string.auth_class_code_placeholder),
-            enabled = enabled,
-            errorText = state.classCodeError?.message(),
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, imeAction = ImeAction.Done),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { viewModel.register() }),
         )
         BookWormButton(
@@ -162,7 +161,7 @@ private fun EmailField(value: String, onChange: (String) -> Unit, error: FieldEr
 private fun FieldError.message(): String = when (this) {
     FieldError.Required -> stringResource(Res.string.auth_error_required)
     FieldError.InvalidEmail -> stringResource(Res.string.auth_error_email)
-    FieldError.PasswordTooShort -> stringResource(Res.string.auth_error_password_short, MIN_PASSWORD_LENGTH)
+    FieldError.PasswordTooWeak -> stringResource(Res.string.auth_error_password_short, MIN_PASSWORD_LENGTH)
 }
 
 @Composable
@@ -171,7 +170,8 @@ private fun SubmitError.message(): String = when (this) {
     is SubmitError.Auth -> when (failure) {
         AuthFailure.InvalidCredentials -> stringResource(Res.string.auth_error_credentials)
         AuthFailure.EmailTaken -> stringResource(Res.string.auth_error_email_taken)
-        AuthFailure.InvalidClassCode -> stringResource(Res.string.auth_error_class_code)
+        AuthFailure.InvalidDetails -> stringResource(Res.string.auth_error_invalid_details)
+        AuthFailure.WrongRole -> stringResource(Res.string.auth_error_wrong_role)
     }
 }
 
