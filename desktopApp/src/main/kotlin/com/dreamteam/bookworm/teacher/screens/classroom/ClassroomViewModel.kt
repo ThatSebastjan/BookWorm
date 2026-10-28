@@ -2,13 +2,16 @@ package com.dreamteam.bookworm.teacher.screens.classroom
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dreamteam.bookworm.domain.model.ClassGroup
+import com.dreamteam.bookworm.domain.model.AddTeacherException
+import com.dreamteam.bookworm.domain.model.AddTeacherFailure
 import com.dreamteam.bookworm.domain.model.ClassStudent
+import com.dreamteam.bookworm.domain.model.ClassroomTeacher
 import com.dreamteam.bookworm.domain.model.Classroom
 import com.dreamteam.bookworm.domain.model.StudentStatus
 import com.dreamteam.bookworm.domain.repository.ClassroomRepository
 import com.dreamteam.bookworm.ui.UiState
 import com.dreamteam.bookworm.ui.loadState
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,9 +22,19 @@ data class ClassroomUiState(
     val classroom: UiState<Classroom> = UiState.Loading,
     val query: String = "",
     val showAddStudents: Boolean = false,
-    /** The group in the edit dialog; an empty id means a new group. Null when the dialog is closed. */
-    val editingGroup: ClassGroup? = null,
-    val deletingGroup: ClassGroup? = null,
+    /** The student the teacher is about to remove (or turn down, if waiting). */
+    val removing: ClassStudent? = null,
+    /** Email typed into "Add teacher". */
+    val teacherEmail: String = "",
+    val addTeacherFailure: AddTeacherFailure? = null,
+    /** The co-teacher the owner is about to remove. */
+    val removingTeacher: ClassroomTeacher? = null,
+    /** The co-teacher is about to leave the classroom. */
+    val confirmLeave: Boolean = false,
+    /** The co-teacher left; the screen closes. */
+    val left: Boolean = false,
+    /** A change is on its way to the server; the controls wait for it. */
+    val busy: Boolean = false,
     val linkCopied: Boolean = false,
     val actionFailed: Boolean = false,
 ) {
@@ -55,73 +68,83 @@ class ClassroomViewModel(
 
     fun search(query: String) = _state.update { it.copy(query = query) }
 
-    fun admit(studentId: String) {
+    fun admit(studentId: String) = change { repository.admit(classId, studentId) }
+
+    fun askRemove(student: ClassStudent?) = _state.update { it.copy(removing = student) }
+
+    fun remove() {
+        val student = _state.value.removing ?: return
+        _state.update { it.copy(removing = null) }
+        change { repository.removeStudent(classId, student.id) }
+    }
+
+    fun setApproveJoins(approve: Boolean) = change { repository.setApproveJoins(classId, approve) }
+
+    // Teachers
+
+    fun setTeacherEmail(email: String) = _state.update { it.copy(teacherEmail = email, addTeacherFailure = null) }
+
+    fun addTeacher() {
+        val email = _state.value.teacherEmail.trim()
+        if (email.isEmpty() || _state.value.busy) return
+        _state.update { it.copy(busy = true, actionFailed = false, addTeacherFailure = null) }
         viewModelScope.launch {
-            when (val result = loadState { repository.admit(classId, studentId) }) {
-                is UiState.Success -> updateClassroom { classroom ->
-                    classroom.copy(students = classroom.students.map { if (it.id == studentId) result.data else it })
-                }
-                is UiState.Error -> _state.update { it.copy(actionFailed = true) }
-                UiState.Loading -> Unit
+            try {
+                val classroom = repository.addTeacher(classId, email)
+                _state.update { it.copy(classroom = UiState.Success(classroom), busy = false, teacherEmail = "") }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: AddTeacherException) {
+                _state.update { it.copy(busy = false, addTeacherFailure = e.failure) }
+            } catch (e: Exception) {
+                _state.update { it.copy(busy = false, actionFailed = true) }
             }
         }
     }
 
-    fun setApproveJoins(approve: Boolean) {
-        val before = (_state.value.classroom as? UiState.Success)?.data?.approveJoins ?: return
-        updateClassroom { it.copy(approveJoins = approve) }
+    fun askRemoveTeacher(teacher: ClassroomTeacher?) = _state.update { it.copy(removingTeacher = teacher) }
+
+    fun removeTeacher() {
+        val teacher = _state.value.removingTeacher ?: return
+        _state.update { it.copy(removingTeacher = null) }
+        change { repository.removeTeacher(classId, teacher.id) ?: error("Removing a co-teacher returns the classroom") }
+    }
+
+    fun askLeave(ask: Boolean) = _state.update { it.copy(confirmLeave = ask) }
+
+    /** A co-teacher leaves; [myId] is their own user id. */
+    fun leave(myId: String) {
+        _state.update { it.copy(confirmLeave = false, busy = true, actionFailed = false) }
         viewModelScope.launch {
-            if (loadState { repository.setApproveJoins(classId, approve) } is UiState.Error) {
-                updateClassroom { it.copy(approveJoins = before) }
-                _state.update { it.copy(actionFailed = true) }
+            if (loadState { repository.removeTeacher(classId, myId) } is UiState.Error) {
+                _state.update { it.copy(busy = false, actionFailed = true) }
+            } else {
+                _state.update { it.copy(busy = false, left = true) }
             }
         }
+    }
+
+    /** Starts or stops using class [subjectId]. Stopping also drops the classroom's path for it. */
+    fun toggleClass(subjectId: String) {
+        val current = (_state.value.classroom as? UiState.Success)?.data?.classIds ?: return
+        val next = if (subjectId in current) current - subjectId else current + subjectId
+        change { repository.setClasses(classId, next) }
     }
 
     fun showAddStudents(show: Boolean) = _state.update { it.copy(showAddStudents = show) }
 
-    fun newGroup() = _state.update { it.copy(editingGroup = ClassGroup(id = "", name = "", studentIds = emptyList())) }
+    fun linkCopied() = _state.update { it.copy(linkCopied = true) }
 
-    fun editGroup(group: ClassGroup) = _state.update { it.copy(editingGroup = group) }
-
-    fun closeGroupDialog() = _state.update { it.copy(editingGroup = null) }
-
-    fun saveGroup(group: ClassGroup) {
-        _state.update { it.copy(editingGroup = null) }
+    /** Runs [request] and shows the classroom it returns; on failure keeps what is shown and says so. */
+    private fun change(request: suspend () -> Classroom) {
+        if (_state.value.busy) return
+        _state.update { it.copy(busy = true, actionFailed = false) }
         viewModelScope.launch {
-            when (val saved = loadState { repository.saveGroup(classId, group.copy(name = group.name.trim())) }) {
-                is UiState.Success -> updateClassroom { classroom ->
-                    val exists = classroom.groups.any { it.id == saved.data.id }
-                    classroom.copy(groups = if (exists) classroom.groups.map { if (it.id == saved.data.id) saved.data else it } else classroom.groups + saved.data)
-                }
-                is UiState.Error -> _state.update { it.copy(actionFailed = true) }
+            when (val result = loadState { request() }) {
+                is UiState.Success -> _state.update { it.copy(classroom = result, busy = false) }
+                is UiState.Error -> _state.update { it.copy(busy = false, actionFailed = true) }
                 UiState.Loading -> Unit
             }
         }
-    }
-
-    fun askDeleteGroup(group: ClassGroup?) = _state.update { it.copy(deletingGroup = group) }
-
-    /** Reloads afterwards: the group's learning path assignments go with it. */
-    fun deleteGroup() {
-        val group = _state.value.deletingGroup ?: return
-        _state.update { it.copy(deletingGroup = null) }
-        viewModelScope.launch {
-            if (loadState { repository.deleteGroup(classId, group.id) } is UiState.Error) {
-                _state.update { it.copy(actionFailed = true) }
-            } else {
-                val refreshed = loadState { repository.getClassroom(classId) }
-                if (refreshed is UiState.Success) _state.update { it.copy(classroom = refreshed) }
-            }
-        }
-    }
-
-    fun linkCopied() = _state.update { it.copy(linkCopied = true) }
-
-    fun dismissError() = _state.update { it.copy(actionFailed = false) }
-
-    private fun updateClassroom(change: (Classroom) -> Classroom) = _state.update { current ->
-        val classroom = (current.classroom as? UiState.Success)?.data ?: return@update current
-        current.copy(classroom = UiState.Success(change(classroom)), actionFailed = false)
     }
 }

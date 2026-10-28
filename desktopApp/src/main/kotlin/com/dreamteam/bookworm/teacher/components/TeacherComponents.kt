@@ -1,8 +1,5 @@
 package com.dreamteam.bookworm.teacher.components
 
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -23,15 +20,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -152,35 +144,6 @@ fun TwoPane(
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp), content = start)
                 Column(verticalArrangement = Arrangement.spacedBy(20.dp), content = end)
             }
-        }
-    }
-}
-
-/** The calm countdown ring: a soft arc that fills clockwise as time passes. */
-@Composable
-fun CalmRing(
-    progress: Float,
-    modifier: Modifier = Modifier,
-    strokeWidth: Dp = 14.dp,
-) {
-    val animated by animateFloatAsState(progress.coerceIn(0f, 1f), animationSpec = tween(900))
-    Canvas(modifier) {
-        val stroke = strokeWidth.toPx()
-        val radius = size.minDimension / 2f - stroke / 2f
-        val topLeft = Offset(center.x - radius, center.y - radius)
-        val arcSize = Size(radius * 2, radius * 2)
-        drawCircle(Color.White, radius, center)
-        drawCircle(TeacherColors.CalmTrack, radius, center, style = Stroke(stroke))
-        if (animated > 0f) {
-            drawArc(
-                TeacherColors.Calm,
-                startAngle = -90f,
-                sweepAngle = 360f * animated,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(stroke, cap = StrokeCap.Round),
-            )
         }
     }
 }

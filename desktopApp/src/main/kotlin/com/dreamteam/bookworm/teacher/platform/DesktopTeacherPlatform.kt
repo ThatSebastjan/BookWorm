@@ -24,11 +24,7 @@ import java.awt.print.Printable
 import java.awt.print.PrinterException
 import java.awt.print.PrinterJob
 import java.io.File
-import javax.sound.sampled.AudioFormat
-import javax.sound.sampled.AudioSystem
 import kotlin.concurrent.thread
-import kotlin.math.PI
-import kotlin.math.sin
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -83,38 +79,6 @@ class DesktopTeacherPlatform(private val window: Frame) : TeacherPlatform {
                 job.print()
             } catch (e: PrinterException) {
                 System.err.println("Printing the join code failed: ${e.message}")
-            }
-        }
-    }
-
-    /** A short, soft two-note chime, generated so the app needs no sound file. */
-    override fun playChime() {
-        thread(name = "quiz-chime", isDaemon = true) {
-            try {
-                val rate = 44_100f
-                val format = AudioFormat(rate, 16, 1, true, false)
-                val notes = listOf(659.25, 880.0) // E5, A5
-                val noteSamples = (rate * 0.45f).toInt()
-                val buffer = ByteArray(notes.size * noteSamples * 2)
-                notes.forEachIndexed { n, frequency ->
-                    for (i in 0 until noteSamples) {
-                        val t = i / rate
-                        val fade = (1.0 - i.toDouble() / noteSamples).let { it * it }
-                        val sample = (sin(2 * PI * frequency * t) * fade * 0.25 * Short.MAX_VALUE).toInt()
-                        val index = (n * noteSamples + i) * 2
-                        buffer[index] = sample.toByte()
-                        buffer[index + 1] = (sample shr 8).toByte()
-                    }
-                }
-                AudioSystem.getSourceDataLine(format).apply {
-                    open(format)
-                    start()
-                    write(buffer, 0, buffer.size)
-                    drain()
-                    close()
-                }
-            } catch (e: Exception) {
-                Toolkit.getDefaultToolkit().beep()
             }
         }
     }
