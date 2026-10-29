@@ -50,25 +50,39 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bookworm.shared.generated.resources.Res
 import bookworm.shared.generated.resources.common_locked
+import bookworm.shared.generated.resources.join_class_title
+import bookworm.shared.generated.resources.learn_all_chapters
 import bookworm.shared.generated.resources.learn_change_subject
+import bookworm.shared.generated.resources.learn_chapter_number
 import bookworm.shared.generated.resources.learn_chapter_progress
+import bookworm.shared.generated.resources.learn_empty_body
 import bookworm.shared.generated.resources.learn_lesson_done
 import bookworm.shared.generated.resources.learn_lesson_locked
+import bookworm.shared.generated.resources.learn_lesson_stars
 import bookworm.shared.generated.resources.learn_lesson_start
-import bookworm.shared.generated.resources.learn_next_chapter
+import bookworm.shared.generated.resources.learn_no_path_body
+import bookworm.shared.generated.resources.learn_no_path_title
 import bookworm.shared.generated.resources.learn_notes
+import bookworm.shared.generated.resources.learn_open_library
+import bookworm.shared.generated.resources.learn_path_done
 import bookworm.shared.generated.resources.learn_start
+import bookworm.shared.generated.resources.library_empty_title
 import bookworm.shared.generated.resources.stars_count
 import bookworm.shared.generated.resources.streak_days
 import com.dreamteam.bookworm.di.LocalAppContainer
+import com.dreamteam.bookworm.domain.model.LearnChapter
 import com.dreamteam.bookworm.domain.model.LessonNode
 import com.dreamteam.bookworm.domain.model.LessonStatus
 import com.dreamteam.bookworm.domain.model.Subject
+import com.dreamteam.bookworm.ui_components.BadgeTile
+import com.dreamteam.bookworm.ui_components.BookWormButton
 import com.dreamteam.bookworm.ui_components.BookWormCard
 import com.dreamteam.bookworm.ui_components.BookWormColors
+import com.dreamteam.bookworm.ui_components.BookWormProgressBar
 import com.dreamteam.bookworm.ui_components.Eyebrow
 import com.dreamteam.bookworm.ui_components.LedgeSurface
 import com.dreamteam.bookworm.ui_components.LockedCard
+import com.dreamteam.bookworm.ui_components.MascotIcon
 import com.dreamteam.bookworm.ui_components.SmallButton
 import com.dreamteam.bookworm.ui_components.StatPill
 import com.dreamteam.bookworm.ui_components.StateContent
@@ -79,6 +93,8 @@ import org.jetbrains.compose.resources.stringResource
 fun LearnScreen(
     onLessonClick: (lessonId: String) -> Unit,
     onChapterClick: (chapterId: String) -> Unit,
+    onJoinClass: () -> Unit,
+    onOpenLibrary: () -> Unit,
 ) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { LearnViewModel(container.learnRepository, container.libraryRepository) }
@@ -90,49 +106,134 @@ fun LearnScreen(
         Column(Modifier.fillMaxSize().background(BookWormColors.Background)) {
             Row(
                 Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SubjectPicker(content.subjects, content.path.subject, onSelect = viewModel::selectSubject)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    StatPill(
-                        Icons.Rounded.LocalFireDepartment, "${content.stats.streakDays}",
-                        pluralStringResource(Res.plurals.streak_days, content.stats.streakDays, content.stats.streakDays),
-                        iconTint = BookWormColors.Flame,
-                    )
-                    StatPill(
-                        Icons.Rounded.Star, "${content.stats.stars}",
-                        pluralStringResource(Res.plurals.stars_count, content.stats.stars, content.stats.stars),
-                    )
+                Box(Modifier.weight(1f)) {
+                    content.subject?.let { SubjectPicker(content.subjects, it, onSelect = viewModel::selectSubject) }
                 }
+                StatPill(
+                    Icons.Rounded.LocalFireDepartment, "${content.stats.streakDays}",
+                    pluralStringResource(Res.plurals.streak_days, content.stats.streakDays, content.stats.streakDays),
+                    iconTint = BookWormColors.Flame,
+                )
+                StatPill(
+                    Icons.Rounded.Star, "${content.stats.stars}",
+                    pluralStringResource(Res.plurals.stars_count, content.stats.stars, content.stats.stars),
+                )
             }
 
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 28.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
-                val chapter = content.path.chapter
-                val done = content.path.lessons.count { it.status == LessonStatus.Done }
-                BookWormCard(Modifier.fillMaxWidth()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Eyebrow(stringResource(Res.string.learn_chapter_progress, chapter.number, done, content.path.lessons.size))
-                            Text(chapter.title, style = MaterialTheme.typography.headlineMedium)
+                val path = content.path
+                val chapter = content.chapter
+                when {
+                    content.subject == null -> EmptyCard(
+                        title = stringResource(Res.string.library_empty_title),
+                        body = stringResource(Res.string.learn_empty_body),
+                        action = stringResource(Res.string.join_class_title),
+                        onAction = onJoinClass,
+                    )
+                    path == null || chapter == null -> EmptyCard(
+                        title = stringResource(Res.string.learn_no_path_title),
+                        body = stringResource(Res.string.learn_no_path_body, content.subject.name),
+                        action = stringResource(Res.string.learn_open_library),
+                        onAction = onOpenLibrary,
+                    )
+                    else -> {
+                        if (path.chapters.all { c -> c.lessonsDone == c.lessons.size }) PathDone()
+                        BookWormCard(Modifier.fillMaxWidth()) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Eyebrow(stringResource(Res.string.learn_chapter_progress, chapter.chapter.number, chapter.lessonsDone, chapter.lessons.size))
+                                    Text(chapter.chapter.title, style = MaterialTheme.typography.headlineMedium)
+                                }
+                                SmallButton(
+                                    stringResource(Res.string.learn_notes),
+                                    onClick = { onChapterClick(chapter.chapter.id) },
+                                    leadingIcon = Icons.AutoMirrored.Outlined.MenuBook,
+                                )
+                            }
                         }
-                        SmallButton(
-                            stringResource(Res.string.learn_notes),
-                            onClick = { onChapterClick(chapter.id) },
-                            leadingIcon = Icons.AutoMirrored.Outlined.MenuBook,
-                        )
+
+                        LessonPath(chapter.lessons, onLessonClick)
+
+                        if (path.chapters.size > 1) {
+                            ChapterList(path.chapters, selected = chapter, onSelect = viewModel::selectChapter)
+                        }
                     }
                 }
+            }
+        }
+    }
+}
 
-                LessonPath(content.path.lessons, onLessonClick)
+/** No class yet, or no path for this class: a short explanation and where to go instead. */
+@Composable
+private fun EmptyCard(title: String, body: String, action: String, onAction: () -> Unit) {
+    BookWormCard(Modifier.fillMaxWidth()) {
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            MascotIcon(Modifier.size(72.dp))
+            Text(title, style = MaterialTheme.typography.titleMedium, color = BookWormColors.Ink, textAlign = TextAlign.Center)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted, textAlign = TextAlign.Center)
+            BookWormButton(action, onClick = onAction, modifier = Modifier.fillMaxWidth())
+        }
+    }
+}
 
-                content.path.nextChapter?.let { next ->
-                    LockedCard(stringResource(Res.string.learn_next_chapter, next.number), next.title, Modifier.fillMaxWidth()) {
-                        Icon(Icons.Outlined.Lock, contentDescription = stringResource(Res.string.common_locked), tint = BookWormColors.InkMuted)
+@Composable
+private fun PathDone() {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(BookWormColors.SunSoft).padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(Icons.Rounded.EmojiEvents, contentDescription = null, tint = BookWormColors.SunDark, modifier = Modifier.size(32.dp))
+        Text(stringResource(Res.string.learn_path_done), style = MaterialTheme.typography.titleSmall, color = BookWormColors.Ink)
+    }
+}
+
+/** Every chapter of the path. Open ones can be picked to see their lessons; locked ones wait their turn. */
+@Composable
+private fun ChapterList(chapters: List<LearnChapter>, selected: LearnChapter, onSelect: (String) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(stringResource(Res.string.learn_all_chapters), style = MaterialTheme.typography.titleMedium, color = BookWormColors.Ink)
+        chapters.forEach { item ->
+            val eyebrow = stringResource(Res.string.learn_chapter_number, item.chapter.number)
+            if (!item.isOpen) {
+                LockedCard(eyebrow, item.chapter.title, Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Lock, contentDescription = stringResource(Res.string.common_locked), tint = BookWormColors.InkMuted)
+                }
+                return@forEach
+            }
+            val isSelected = item == selected
+            BookWormCard(
+                Modifier.fillMaxWidth().then(
+                    if (isSelected) Modifier.border(2.dp, BookWormColors.Primary, RoundedCornerShape(20.dp)) else Modifier,
+                ),
+                onClick = { onSelect(item.chapter.id) },
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    val allDone = item.lessonsDone == item.lessons.size
+                    BadgeTile(
+                        "${item.chapter.number}",
+                        background = if (allDone) BookWormColors.Primary else BookWormColors.PrimarySoft,
+                        contentColor = if (allDone) Color.White else BookWormColors.PrimaryDark,
+                        size = 44.dp,
+                    )
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(item.chapter.title, style = MaterialTheme.typography.titleSmall, color = BookWormColors.Ink)
+                        BookWormProgressBar(
+                            if (item.lessons.isEmpty()) 0f else item.lessonsDone.toFloat() / item.lessons.size,
+                            Modifier.semantics {
+                                contentDescription = "$eyebrow, ${item.lessonsDone} / ${item.lessons.size}"
+                            },
+                            height = 8.dp,
+                        )
                     }
+                    if (allDone) Icon(Icons.Rounded.Check, contentDescription = null, tint = BookWormColors.Primary)
                 }
             }
         }
@@ -194,6 +295,18 @@ private fun LessonPath(lessons: List<LessonNode>, onLessonClick: (String) -> Uni
                     textAlign = TextAlign.Center,
                     modifier = Modifier.width(140.dp),
                 )
+                // The stars still to win; done lessons have given theirs.
+                if (lesson.status != LessonStatus.Done && lesson.stars > 0) {
+                    val starsLabel = pluralStringResource(Res.plurals.learn_lesson_stars, lesson.stars, lesson.stars)
+                    Row(
+                        Modifier.semantics(mergeDescendants = true) { contentDescription = starsLabel },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    ) {
+                        Icon(Icons.Rounded.Star, contentDescription = null, tint = BookWormColors.Sun, modifier = Modifier.size(16.dp))
+                        Text("+${lesson.stars}", style = MaterialTheme.typography.labelSmall, color = BookWormColors.InkMuted)
+                    }
+                }
             }
         }
     }

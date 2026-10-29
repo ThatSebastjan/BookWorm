@@ -25,6 +25,8 @@ data class Chapter(
     val teacherName: String,
     val notes: List<NoteSection>,
     val flashcards: List<Flashcard>,
+    /** Cards the student knew the last time they practised them. Practice only shows the others. */
+    val knownFlashcardIds: Set<String> = emptySet(),
 )
 
 data class NoteSection(

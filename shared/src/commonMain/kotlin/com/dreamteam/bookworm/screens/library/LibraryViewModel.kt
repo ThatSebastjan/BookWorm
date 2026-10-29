@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+/** Each "subject" is one of the student's classes; its chapters are listed under it. */
 data class LibraryUiState(
     val subjects: UiState<List<Subject>> = UiState.Loading,
     val selectedSubjectId: String? = null,
@@ -50,8 +51,24 @@ class LibraryViewModel(private val repository: LibraryRepository) : ViewModel() 
         loadChapters(showLoading = true)
     }
 
-    /** Reloads chapters in the background, e.g. after practising flashcards. */
-    fun refresh() = loadChapters(showLoading = false)
+    /**
+     * Reloads in the background, e.g. after practising flashcards or joining a class.
+     * Keeps what is on screen if the reload fails.
+     */
+    fun refresh() {
+        if (_state.value.subjects !is UiState.Success) return load()
+        viewModelScope.launch {
+            val subjects = loadState { repository.getSubjects() } as? UiState.Success ?: return@launch
+            val ids = subjects.data.map { it.id }
+            _state.update {
+                it.copy(
+                    subjects = subjects,
+                    selectedSubjectId = it.selectedSubjectId?.takeIf { id -> id in ids } ?: ids.firstOrNull(),
+                )
+            }
+            loadChapters(showLoading = false)
+        }
+    }
 
     fun retryChapters() = loadChapters(showLoading = true)
 

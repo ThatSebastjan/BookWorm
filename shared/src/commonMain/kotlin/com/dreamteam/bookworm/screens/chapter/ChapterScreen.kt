@@ -1,5 +1,7 @@
 package com.dreamteam.bookworm.screens.chapter
 
+import org.jetbrains.compose.resources.pluralStringResource
+import com.dreamteam.bookworm.ui_components.MascotIcon
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -36,7 +38,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bookworm.shared.generated.resources.Res
 import bookworm.shared.generated.resources.chapter_card_meaning
-import bookworm.shared.generated.resources.chapter_card_of
+import bookworm.shared.generated.resources.library_status_known
+import bookworm.shared.generated.resources.chapter_start_over_failed
+import bookworm.shared.generated.resources.chapter_start_over
+import bookworm.shared.generated.resources.chapter_mastered_title
+import bookworm.shared.generated.resources.chapter_mastered_body
 import bookworm.shared.generated.resources.chapter_card_word
 import bookworm.shared.generated.resources.chapter_eyebrow
 import bookworm.shared.generated.resources.chapter_got_it
@@ -101,11 +107,10 @@ fun ChapterScreen(chapterId: String, onBack: () -> Unit) {
             when (state.tab) {
                 ChapterTab.Notes -> NotesTab(chapter, onPractise = { viewModel.selectTab(ChapterTab.Flashcards) })
                 ChapterTab.Flashcards -> FlashcardsTab(
-                    cards = chapter.flashcards,
-                    index = state.cardIndex,
-                    flipped = state.flipped,
+                    state = state,
                     onFlip = viewModel::flip,
                     onAnswer = viewModel::answerCard,
+                    onStartOver = viewModel::startOver,
                 )
             }
         }
@@ -146,42 +151,87 @@ private fun NoteSectionView(section: NoteSection) {
     }
 }
 
+/** Practice with the cards the student doesn't know yet; once they know them all, they can start over. */
 @Composable
 private fun FlashcardsTab(
-    cards: List<Flashcard>,
-    index: Int,
-    flipped: Boolean,
+    state: ChapterUiState,
     onFlip: () -> Unit,
     onAnswer: (known: Boolean) -> Unit,
+    onStartOver: () -> Unit,
 ) {
     Column(
         Modifier.fillMaxSize().padding(start = 20.dp, end = 20.dp, top = 8.dp, bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        val card = cards.getOrNull(index.coerceAtLeast(0) % cards.size.coerceAtLeast(1))
-        if (card == null) {
-            BookWormCard(Modifier.fillMaxWidth()) {
+        val card = state.current
+        when {
+            state.total == 0 -> BookWormCard(Modifier.fillMaxWidth()) {
                 Text(stringResource(Res.string.chapter_no_flashcards), style = MaterialTheme.typography.bodyLarge, color = BookWormColors.InkMuted)
             }
-        } else {
-            FlashcardView(card, index, cards.size, flipped, onFlip, onAnswer)
+            state.mastered || card == null -> Mastered(state, onStartOver)
+            else -> FlashcardView(card, state.knownCount, state.total, state.flipped, onFlip, onAnswer)
         }
     }
 }
 
 @Composable
+private fun KnownProgress(known: Int, total: Int) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        BookWormProgressBar(known.toFloat() / total, Modifier.weight(1f), height = 12.dp)
+        Text(stringResource(Res.string.library_status_known, known, total), style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp), color = BookWormColors.InkMuted)
+    }
+}
+
+@Composable
+private fun ColumnScope.Mastered(state: ChapterUiState, onStartOver: () -> Unit) {
+    KnownProgress(state.total, state.total)
+    BookWormCard(Modifier.fillMaxWidth().weight(1f), contentPadding = PaddingValues(24.dp)) {
+        Column(
+            Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp, Alignment.CenterVertically),
+        ) {
+            MascotIcon(Modifier.size(96.dp))
+            Text(
+                pluralStringResource(Res.plurals.chapter_mastered_title, state.total, state.total),
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+            )
+            Text(
+                stringResource(Res.string.chapter_mastered_body),
+                style = MaterialTheme.typography.bodyLarge,
+                color = BookWormColors.InkMuted,
+                textAlign = TextAlign.Center,
+            )
+            if (state.startOverFailed) {
+                Text(
+                    stringResource(Res.string.chapter_start_over_failed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BookWormColors.Danger,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
+    }
+    BookWormButton(
+        stringResource(Res.string.chapter_start_over),
+        onStartOver,
+        Modifier.fillMaxWidth(),
+        enabled = !state.startingOver,
+        leadingIcon = Icons.Rounded.Autorenew,
+    )
+}
+
+@Composable
 private fun ColumnScope.FlashcardView(
     card: Flashcard,
-    index: Int,
+    known: Int,
     total: Int,
     flipped: Boolean,
     onFlip: () -> Unit,
     onAnswer: (known: Boolean) -> Unit,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        BookWormProgressBar((index + 1f) / total, Modifier.weight(1f), height = 12.dp)
-        Text(stringResource(Res.string.chapter_card_of, index + 1, total), style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp), color = BookWormColors.InkMuted)
-    }
+    KnownProgress(known, total)
 
     val face = if (flipped) BookWormColors.Primary else BookWormColors.Surface
     val edge = if (flipped) BookWormColors.PrimaryDark else BookWormColors.Border

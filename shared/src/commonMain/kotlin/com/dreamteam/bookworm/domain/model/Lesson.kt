@@ -4,6 +4,10 @@ data class Lesson(
     val id: String,
     val title: String,
     val questions: List<Question>,
+    /** Stars for finishing it; 0 when [alreadyDone]. */
+    val stars: Int = 0,
+    /** Finished before, so it earns no stars again. */
+    val alreadyDone: Boolean = false,
 )
 
 /** A fraction shown as stacked numerator over denominator. */
@@ -85,9 +89,9 @@ sealed interface Answer {
 data class AnswerResult(
     val correct: Boolean,
     val explanation: String,
-    val starsEarned: Int,
 )
 
+/** [starsEarned] are the lesson's stars the first time it is finished, and 0 after that. */
 data class LessonSummary(
     val starsEarned: Int,
     val correctAnswers: Int,
