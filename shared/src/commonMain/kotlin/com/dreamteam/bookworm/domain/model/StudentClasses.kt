@@ -4,7 +4,8 @@ package com.dreamteam.bookworm.domain.model
 data class StudentClass(
     val id: String,
     val name: String,
-    val grade: Int,
+    /** Null for a class the teacher hasn't given a grade. */
+    val grade: Int?,
     val teacherName: String,
     val status: MembershipStatus,
 )

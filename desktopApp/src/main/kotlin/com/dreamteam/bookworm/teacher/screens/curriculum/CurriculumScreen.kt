@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CheckCircle
 import androidx.compose.material.icons.outlined.Delete
@@ -26,6 +27,7 @@ import androidx.compose.material.icons.rounded.ArrowDownward
 import androidx.compose.material.icons.rounded.ArrowUpward
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.EmojiEvents
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -38,18 +40,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.dreamteam.bookworm.di.LocalAppContainer
-import com.dreamteam.bookworm.domain.model.AssignmentTarget
 import com.dreamteam.bookworm.domain.model.Curriculum
 import com.dreamteam.bookworm.domain.model.CurriculumLesson
 import com.dreamteam.bookworm.domain.model.CurriculumLibrary
 import com.dreamteam.bookworm.domain.model.CurriculumSummary
 import com.dreamteam.bookworm.domain.model.CurriculumUnit
+import com.dreamteam.bookworm.domain.model.PathProgress
+import com.dreamteam.bookworm.domain.model.StudentProgress
 import com.dreamteam.bookworm.domain.model.UnlockMode
 import com.dreamteam.bookworm.navigation.ScopedViewModelStore
 import com.dreamteam.bookworm.teacher.components.BookWormDropdown
@@ -61,15 +67,16 @@ import com.dreamteam.bookworm.teacher.components.TeacherHeader
 import com.dreamteam.bookworm.teacher.components.TeacherPage
 import com.dreamteam.bookworm.teacher.components.dashedBorder
 import com.dreamteam.bookworm.teacher.resources.Res
-import com.dreamteam.bookworm.teacher.resources.materials_subject
 import com.dreamteam.bookworm.teacher.resources.paths_action_failed
 import com.dreamteam.bookworm.teacher.resources.paths_add_chapter
 import com.dreamteam.bookworm.teacher.resources.paths_add_lesson
 import com.dreamteam.bookworm.teacher.resources.paths_chapter_cards
 import com.dreamteam.bookworm.teacher.resources.paths_chapter_count
+import com.dreamteam.bookworm.teacher.resources.paths_chapter_option
 import com.dreamteam.bookworm.teacher.resources.paths_chapter_pick
 import com.dreamteam.bookworm.teacher.resources.paths_chapters
 import com.dreamteam.bookworm.teacher.resources.paths_chapters_hint
+import com.dreamteam.bookworm.teacher.resources.paths_class
 import com.dreamteam.bookworm.teacher.resources.paths_create_chapter
 import com.dreamteam.bookworm.teacher.resources.paths_default_lesson
 import com.dreamteam.bookworm.teacher.resources.paths_default_practise
@@ -84,9 +91,9 @@ import com.dreamteam.bookworm.teacher.resources.paths_empty_title
 import com.dreamteam.bookworm.teacher.resources.paths_followers
 import com.dreamteam.bookworm.teacher.resources.paths_followers_hint
 import com.dreamteam.bookworm.teacher.resources.paths_from_flashcards
-import com.dreamteam.bookworm.teacher.resources.paths_group_of
 import com.dreamteam.bookworm.teacher.resources.paths_keep_editing
 import com.dreamteam.bookworm.teacher.resources.paths_lesson_count
+import com.dreamteam.bookworm.teacher.resources.paths_lesson_stars
 import com.dreamteam.bookworm.teacher.resources.paths_lesson_title
 import com.dreamteam.bookworm.teacher.resources.paths_mode
 import com.dreamteam.bookworm.teacher.resources.paths_mode_any
@@ -103,6 +110,11 @@ import com.dreamteam.bookworm.teacher.resources.paths_new_title
 import com.dreamteam.bookworm.teacher.resources.paths_no_chapters
 import com.dreamteam.bookworm.teacher.resources.paths_no_followers
 import com.dreamteam.bookworm.teacher.resources.paths_now_follows
+import com.dreamteam.bookworm.teacher.resources.paths_progress_lessons
+import com.dreamteam.bookworm.teacher.resources.paths_progress_no_classrooms
+import com.dreamteam.bookworm.teacher.resources.paths_progress_no_students
+import com.dreamteam.bookworm.teacher.resources.paths_progress_stars
+import com.dreamteam.bookworm.teacher.resources.paths_progress_unsaved
 import com.dreamteam.bookworm.teacher.resources.paths_question_count
 import com.dreamteam.bookworm.teacher.resources.paths_quiz_off
 import com.dreamteam.bookworm.teacher.resources.paths_quiz_on
@@ -112,21 +124,21 @@ import com.dreamteam.bookworm.teacher.resources.paths_save_first
 import com.dreamteam.bookworm.teacher.resources.paths_saved
 import com.dreamteam.bookworm.teacher.resources.paths_subject_grade
 import com.dreamteam.bookworm.teacher.resources.paths_subtitle
+import com.dreamteam.bookworm.teacher.resources.paths_tab_edit
+import com.dreamteam.bookworm.teacher.resources.paths_tab_progress
 import com.dreamteam.bookworm.teacher.resources.paths_title
 import com.dreamteam.bookworm.teacher.resources.paths_unsaved_body
 import com.dreamteam.bookworm.teacher.resources.paths_unsaved_title
-import com.dreamteam.bookworm.teacher.resources.paths_whole_class
-import com.dreamteam.bookworm.teacher.resources.profile_grade
-import com.dreamteam.bookworm.teacher.resources.quiz_chapter_option
 import com.dreamteam.bookworm.teacher.resources.teacher_cancel
-import com.dreamteam.bookworm.teacher.resources.teacher_class_grade
 import com.dreamteam.bookworm.teacher.resources.teacher_create
 import com.dreamteam.bookworm.teacher.screens.lessoneditor.LessonEditorScreen
+import com.dreamteam.bookworm.ui.UiState
 import com.dreamteam.bookworm.ui_components.BadgeTile
 import com.dreamteam.bookworm.ui_components.BookWormButton
 import com.dreamteam.bookworm.ui_components.BookWormCard
 import com.dreamteam.bookworm.ui_components.BookWormColors
 import com.dreamteam.bookworm.ui_components.BookWormDialog
+import com.dreamteam.bookworm.ui_components.BookWormProgressBar
 import com.dreamteam.bookworm.ui_components.BookWormTextField
 import com.dreamteam.bookworm.ui_components.ButtonVariant
 import com.dreamteam.bookworm.ui_components.LabeledCheckbox
@@ -139,7 +151,7 @@ import com.dreamteam.bookworm.ui_components.StateContent
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
-/** Learning paths: what students learn on their own, in which order, and which classes and groups follow it. */
+/** Learning paths: what students learn on their own in a class, in which order, and which classrooms follow it. */
 @Composable
 fun CurriculumScreen() {
     val container = LocalAppContainer.current
@@ -338,6 +350,20 @@ private fun Editor(
             )
         }
 
+        // Progress needs a saved path to count against.
+        if (draft.id.isNotEmpty()) {
+            SegmentedControl(
+                options = listOf(stringResource(Res.string.paths_tab_edit), stringResource(Res.string.paths_tab_progress)),
+                selectedIndex = if (state.showProgress) 1 else 0,
+                onSelect = { viewModel.showProgress(it == 1) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (state.showProgress && draft.id.isNotEmpty()) {
+            Progress(state.progress, dirty = state.dirty, onRetry = viewModel::loadProgress)
+            return@Column
+        }
+
         Followers(library, draft, onToggle = viewModel::toggleTarget)
 
         SectionCard(stringResource(Res.string.paths_mode)) {
@@ -359,34 +385,69 @@ private fun Editor(
     }
 }
 
-/** Which classes and groups follow the path. */
+/** How far each student of the classrooms following the path has got. */
 @Composable
-private fun Followers(library: CurriculumLibrary, draft: Curriculum, onToggle: (AssignmentTarget) -> Unit) {
+private fun Progress(progress: UiState<PathProgress>?, dirty: Boolean, onRetry: () -> Unit) {
+    if (dirty) {
+        Text(stringResource(Res.string.paths_progress_unsaved), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+    }
+    StateContent(progress ?: UiState.Loading, onRetry = onRetry) { data ->
+        Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+            if (data.classrooms.isEmpty()) {
+                SectionCard(stringResource(Res.string.paths_tab_progress)) {
+                    Text(stringResource(Res.string.paths_progress_no_classrooms), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+                }
+            }
+            data.classrooms.forEach { room ->
+                SectionCard(room.classroomName) {
+                    if (room.students.isEmpty()) {
+                        Text(stringResource(Res.string.paths_progress_no_students), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+                    }
+                    room.students.forEach { StudentProgressRow(it, data) }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun StudentProgressRow(student: StudentProgress, path: PathProgress) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(student.name, style = MaterialTheme.typography.labelMedium.copy(fontSize = 15.sp), modifier = Modifier.width(180.dp))
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            BookWormProgressBar(if (path.lessonCount == 0) 0f else student.lessonsDone.toFloat() / path.lessonCount, height = 8.dp)
+            Text(
+                stringResource(Res.string.paths_progress_lessons, student.lessonsDone, path.lessonCount, student.currentChapter, path.chapterCount),
+                style = MaterialTheme.typography.bodySmall,
+                color = BookWormColors.InkMuted,
+            )
+        }
+        Text(
+            pluralStringResource(Res.plurals.paths_progress_stars, student.stars, student.stars),
+            style = MaterialTheme.typography.bodySmall,
+            color = BookWormColors.InkMuted,
+            modifier = Modifier.width(90.dp),
+        )
+    }
+}
+
+/** Which classrooms follow the path. */
+@Composable
+private fun Followers(library: CurriculumLibrary, draft: Curriculum, onToggle: (classroomId: String) -> Unit) {
     val subjectName = library.subjects.firstOrNull { it.id == draft.subjectId }?.name.orEmpty()
-    // What each class or group follows now for this subject, if it isn't this path.
+    // What each classroom follows now for this class, if it isn't this path.
     val current = library.curricula.filter { it.subjectId == draft.subjectId && it.id != draft.id }
-    fun otherPath(target: AssignmentTarget) = current.firstOrNull { target in it.assignedTo }?.name
+    fun otherPath(classroomId: String) = current.firstOrNull { classroomId in it.assignedTo }?.name
 
     SectionCard(stringResource(Res.string.paths_followers)) {
         Text(stringResource(Res.string.paths_followers_hint, subjectName), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
-        library.classes.forEach { schoolClass ->
-            val whole = AssignmentTarget.WholeClass(schoolClass.id)
+        library.classes.forEach { classroom ->
             FollowerRow(
-                label = stringResource(Res.string.paths_whole_class, schoolClass.name),
-                checked = whole in draft.assignedTo,
-                otherPath = otherPath(whole).takeIf { whole !in draft.assignedTo },
-                onToggle = { onToggle(whole) },
+                label = classroom.name,
+                checked = classroom.id in draft.assignedTo,
+                otherPath = otherPath(classroom.id).takeIf { classroom.id !in draft.assignedTo },
+                onToggle = { onToggle(classroom.id) },
             )
-            schoolClass.groups.forEach { group ->
-                val target = AssignmentTarget.Group(schoolClass.id, group.id)
-                FollowerRow(
-                    label = stringResource(Res.string.paths_group_of, group.name, schoolClass.name),
-                    checked = target in draft.assignedTo,
-                    otherPath = otherPath(target).takeIf { target !in draft.assignedTo },
-                    onToggle = { onToggle(target) },
-                    modifier = Modifier.padding(start = 28.dp),
-                )
-            }
         }
     }
 }
@@ -429,6 +490,7 @@ private fun Chapters(library: CurriculumLibrary, draft: Curriculum, viewModel: C
                 onAddLesson = { viewModel.addLesson(unitIndex, newLesson) },
                 onRenameLesson = { lesson, title -> viewModel.renameLesson(unitIndex, lesson, title) },
                 onToggleQuiz = { viewModel.toggleQuiz(unitIndex, it) },
+                onLessonStars = { lesson, stars -> viewModel.setLessonStars(unitIndex, lesson, stars) },
                 onMoveLesson = { lesson, by -> viewModel.moveLesson(unitIndex, lesson, by) },
                 onRemoveLesson = { viewModel.removeLesson(unitIndex, it) },
                 onEditLesson = onEditLesson,
@@ -444,7 +506,7 @@ private fun Chapters(library: CurriculumLibrary, draft: Curriculum, viewModel: C
                 options = available,
                 selected = available.firstOrNull { it.id == pickedId },
                 onSelect = { pickedId = it.id },
-                optionLabel = { stringResource(Res.string.quiz_chapter_option, it.number, it.title) },
+                optionLabel = { stringResource(Res.string.paths_chapter_option, it.number, it.title) },
                 modifier = Modifier.weight(1f),
                 enabled = available.isNotEmpty(),
             )
@@ -488,11 +550,12 @@ private fun UnitCard(
     onAddLesson: () -> Unit,
     onRenameLesson: (Int, String) -> Unit,
     onToggleQuiz: (Int) -> Unit,
+    onLessonStars: (Int, String) -> Unit,
     onMoveLesson: (Int, Int) -> Unit,
     onRemoveLesson: (Int) -> Unit,
     onEditLesson: (String) -> Unit,
 ) {
-    val chapterLabel = stringResource(Res.string.quiz_chapter_option, unit.chapter.number, unit.chapter.title)
+    val chapterLabel = stringResource(Res.string.paths_chapter_option, unit.chapter.number, unit.chapter.title)
     BookWormCard(Modifier.fillMaxWidth(), contentPadding = PaddingValues(16.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             BadgeTile("$position", size = 44.dp)
@@ -516,6 +579,7 @@ private fun UnitCard(
                 isLast = index == unit.lessons.lastIndex,
                 onRename = { onRenameLesson(index, it) },
                 onToggleQuiz = { onToggleQuiz(index) },
+                onStars = { onLessonStars(index, it) },
                 onMove = { onMoveLesson(index, it) },
                 onRemove = { onRemoveLesson(index) },
                 onEdit = { onEditLesson(lesson.id) },
@@ -533,6 +597,7 @@ private fun LessonRow(
     isLast: Boolean,
     onRename: (String) -> Unit,
     onToggleQuiz: () -> Unit,
+    onStars: (String) -> Unit,
     onMove: (Int) -> Unit,
     onRemove: () -> Unit,
     onEdit: () -> Unit,
@@ -574,6 +639,21 @@ private fun LessonRow(
             color = if (lesson.questionCount > 0) BookWormColors.SuccessDark else BookWormColors.InkMuted,
             modifier = Modifier.width(96.dp),
         )
+        // Stars the student gets the first time they finish the lesson.
+        val starsLabel = stringResource(Res.string.paths_lesson_stars, title)
+        Row(
+            Modifier.semantics(mergeDescendants = true) { contentDescription = starsLabel },
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Icon(Icons.Rounded.Star, contentDescription = null, tint = BookWormColors.Sun, modifier = Modifier.size(20.dp))
+            BookWormTextField(
+                value = "${lesson.stars}",
+                onValueChange = onStars,
+                modifier = Modifier.width(64.dp),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+        }
         // Lessons get an id when the path is saved; only then can their questions be written.
         RoundIconButton(
             Icons.Outlined.EditNote,
@@ -599,54 +679,40 @@ private fun LessonRow(
 @Composable
 private fun NewPathDialog(
     library: CurriculumLibrary,
-    onCreate: (name: String, subjectId: String, grade: Int) -> Unit,
+    onCreate: (name: String, subjectId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var name by remember { mutableStateOf("") }
     var subjectId by remember { mutableStateOf(library.subjects.firstOrNull()?.id) }
-    var grade by remember { mutableStateOf(library.classes.firstOrNull()?.grade ?: 3) }
     BookWormFormDialog(
         title = stringResource(Res.string.paths_new_title),
         onDismissRequest = onDismiss,
         confirmText = stringResource(Res.string.teacher_create),
-        onConfirm = { subjectId?.let { onCreate(name, it, grade) } },
+        onConfirm = { subjectId?.let { onCreate(name, it) } },
         dismissText = stringResource(Res.string.teacher_cancel),
         confirmEnabled = name.isNotBlank() && subjectId != null,
     ) {
         BookWormTextField(value = name, onValueChange = { name = it }, label = stringResource(Res.string.paths_name))
         BookWormDropdown(
-            label = stringResource(Res.string.materials_subject),
+            label = stringResource(Res.string.paths_class),
             options = library.subjects,
             selected = library.subjects.firstOrNull { it.id == subjectId },
             onSelect = { subjectId = it.id },
             optionLabel = { it.name },
         )
-        BookWormDropdown(
-            label = stringResource(Res.string.teacher_class_grade),
-            options = (1..9).toList(),
-            selected = grade,
-            onSelect = { grade = it },
-            optionLabel = { stringResource(Res.string.profile_grade, it) },
-        )
     }
 }
 
+/** "Maths 4 · Grade 4", or just the class name before a new path is saved (its grade comes from the class). */
 @Composable
-private fun subjectGrade(library: CurriculumLibrary, subjectId: String, grade: Int): String =
-    stringResource(Res.string.paths_subject_grade, library.subjects.firstOrNull { it.id == subjectId }?.name.orEmpty(), grade)
+private fun subjectGrade(library: CurriculumLibrary, subjectId: String, grade: Int): String {
+    val name = library.subjects.firstOrNull { it.id == subjectId }?.name.orEmpty()
+    return if (grade > 0) stringResource(Res.string.paths_subject_grade, name, grade) else name
+}
 
 @Composable
-private fun targetLabel(library: CurriculumLibrary, target: AssignmentTarget): String {
-    val schoolClass = library.classes.firstOrNull { it.id == target.classId }
-    val className = schoolClass?.name.orEmpty()
-    return when (target) {
-        is AssignmentTarget.WholeClass -> className
-        is AssignmentTarget.Group -> {
-            val group = schoolClass?.groups?.firstOrNull { it.id == target.groupId }?.name.orEmpty()
-            stringResource(Res.string.paths_group_of, group, className)
-        }
-    }
-}
+private fun targetLabel(library: CurriculumLibrary, classroomId: String): String =
+    library.classes.firstOrNull { it.id == classroomId }?.name.orEmpty()
 
 @Composable
 private fun Chip(text: String, background: Color, content: Color) {

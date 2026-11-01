@@ -43,6 +43,10 @@ sealed interface Destination {
     data object JoinClass : Destination {
         override val showsBottomBar = false
     }
+
+    data object EditProfile : Destination {
+        override val showsBottomBar = false
+    }
 }
 
 /**

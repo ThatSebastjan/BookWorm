@@ -22,9 +22,6 @@ interface TeacherPlatform {
 
     /** Sends a page with the join code to the printer. */
     fun printJoinCode(className: String, code: String, link: String) = Unit
-
-    /** The soft sound at the end of a pop quiz. */
-    fun playChime() = Unit
 }
 
 object NoTeacherPlatform : TeacherPlatform

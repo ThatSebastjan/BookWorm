@@ -2,6 +2,7 @@ package com.dreamteam.bookworm.screens.learn
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dreamteam.bookworm.domain.model.LearnChapter
 import com.dreamteam.bookworm.domain.model.LearnPath
 import com.dreamteam.bookworm.domain.model.StudentStats
 import com.dreamteam.bookworm.domain.model.Subject
@@ -19,10 +20,18 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class LearnContent(
+    /** Empty until the student is let into a classroom. */
     val subjects: List<Subject>,
-    val path: LearnPath,
+    val subject: Subject?,
+    /** Null while the teacher hasn't assigned a path for [subject]. */
+    val path: LearnPath?,
     val stats: StudentStats,
-)
+    /** The chapter the student picked; null follows the one they are working on. */
+    val chosenChapterId: String? = null,
+) {
+    val chapter: LearnChapter?
+        get() = path?.let { p -> p.chapters.firstOrNull { it.chapter.id == chosenChapterId && it.isOpen } ?: p.chapters.getOrNull(p.currentChapterIndex) }
+}
 
 class LearnViewModel(
     private val learnRepository: LearnRepository,
@@ -49,17 +58,35 @@ class LearnViewModel(
         load(showLoading = true)
     }
 
+    /** Shows another chapter's lessons. Picking the one the student is working on follows it again. */
+    fun selectChapter(chapterId: String) = _state.update { state ->
+        val content = (state as? UiState.Success)?.data ?: return@update state
+        val chapter = content.path?.chapters?.firstOrNull { it.chapter.id == chapterId }?.takeIf { it.isOpen } ?: return@update state
+        val current = content.path.chapters.getOrNull(content.path.currentChapterIndex)
+        UiState.Success(content.copy(chosenChapterId = chapterId.takeIf { chapter != current }))
+    }
+
     private fun load(showLoading: Boolean) {
         job?.cancel()
         job = viewModelScope.launch {
-            if (showLoading || _state.value !is UiState.Success) _state.value = UiState.Loading
+            val previous = (_state.value as? UiState.Success)?.data
+            if (showLoading || previous == null) _state.value = UiState.Loading
             val result = loadState {
                 val subjects = libraryRepository.getSubjects()
-                val id = subjectId ?: subjects.first().id.also { subjectId = it }
+                // The student may have left the class picked before.
+                val subject = subjects.firstOrNull { it.id == subjectId } ?: subjects.firstOrNull()
+                subjectId = subject?.id
                 coroutineScope {
-                    val path = async { learnRepository.getLearnPath(id) }
+                    val path = async { subject?.let { learnRepository.getLearnPath(it.id) } }
                     val stats = async { learnRepository.getStats() }
-                    LearnContent(subjects, path.await(), stats.await())
+                    LearnContent(
+                        subjects = subjects,
+                        subject = subject,
+                        path = path.await(),
+                        stats = stats.await(),
+                        // A chapter picked by hand stays picked while it still exists and is open.
+                        chosenChapterId = previous?.chosenChapterId?.takeIf { previous.subject?.id == subject?.id },
+                    )
                 }
             }
             if (result is UiState.Error && !showLoading && _state.value is UiState.Success) return@launch

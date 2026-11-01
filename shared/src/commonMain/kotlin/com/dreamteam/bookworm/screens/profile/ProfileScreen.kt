@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -17,12 +18,14 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Logout
+import androidx.compose.material.icons.automirrored.rounded.MenuBook
+import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.EmojiEvents
 import androidx.compose.material.icons.rounded.GroupAdd
 import androidx.compose.material.icons.rounded.LocalFireDepartment
-import androidx.compose.material.icons.rounded.PieChart
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -51,8 +54,16 @@ import bookworm.shared.generated.resources.auth_logout
 import bookworm.shared.generated.resources.auth_logout_body
 import bookworm.shared.generated.resources.auth_logout_title
 import bookworm.shared.generated.resources.common_error_title
+import bookworm.shared.generated.resources.edit_profile_open
 import bookworm.shared.generated.resources.join_class_title
+import bookworm.shared.generated.resources.profile_badge_chapter_done
+import bookworm.shared.generated.resources.profile_badge_chapter_quiz
+import bookworm.shared.generated.resources.profile_badge_first_lesson
+import bookworm.shared.generated.resources.profile_badge_lessons
 import bookworm.shared.generated.resources.profile_badge_locked
+import bookworm.shared.generated.resources.profile_badge_progress
+import bookworm.shared.generated.resources.profile_badge_stars
+import bookworm.shared.generated.resources.profile_badge_streak
 import bookworm.shared.generated.resources.profile_badges
 import bookworm.shared.generated.resources.profile_chapter_of
 import bookworm.shared.generated.resources.profile_class_waiting
@@ -67,6 +78,8 @@ import bookworm.shared.generated.resources.profile_level_progress
 import bookworm.shared.generated.resources.profile_my_classes
 import bookworm.shared.generated.resources.profile_stars_earned
 import bookworm.shared.generated.resources.profile_stars_to_level
+import bookworm.shared.generated.resources.profile_streak_keep
+import bookworm.shared.generated.resources.profile_streak_safe
 import bookworm.shared.generated.resources.profile_this_week
 import bookworm.shared.generated.resources.profile_weekday_initials
 import bookworm.shared.generated.resources.profile_weekday_names
@@ -87,13 +100,20 @@ import com.dreamteam.bookworm.ui_components.BookWormDialog
 import com.dreamteam.bookworm.ui_components.BookWormProgressBar
 import com.dreamteam.bookworm.ui_components.ButtonVariant
 import com.dreamteam.bookworm.ui_components.LoadingView
+import com.dreamteam.bookworm.ui_components.SmallButton
 import com.dreamteam.bookworm.ui_components.StatTile
 import com.dreamteam.bookworm.ui_components.StateContent
+import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringArrayResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun ProfileScreen(onClassClick: (subjectId: String) -> Unit, onJoinClass: () -> Unit, onLogout: () -> Unit) {
+fun ProfileScreen(
+    onClassClick: (subjectId: String) -> Unit,
+    onJoinClass: () -> Unit,
+    onEditProfile: () -> Unit,
+    onLogout: () -> Unit,
+) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { ProfileViewModel(container.profileRepository, container.studentClassesRepository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -103,7 +123,7 @@ fun ProfileScreen(onClassClick: (subjectId: String) -> Unit, onJoinClass: () -> 
     LaunchedEffect(Unit) { viewModel.refresh() }
 
     StateContent(state, onRetry = viewModel::retry) { profile ->
-        ProfileContent(profile, classes, onClassClick, onJoinClass, onLogoutClick = { confirmLogout = true })
+        ProfileContent(profile, classes, onClassClick, onJoinClass, onEditProfile, onLogoutClick = { confirmLogout = true })
     }
 
     if (confirmLogout) {
@@ -128,6 +148,7 @@ private fun ProfileContent(
     classes: UiState<List<StudentClass>>,
     onClassClick: (String) -> Unit,
     onJoinClass: () -> Unit,
+    onEditProfile: () -> Unit,
     onLogoutClick: () -> Unit,
 ) {
     Column(
@@ -135,13 +156,15 @@ private fun ProfileContent(
             .padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(26.dp),
     ) {
-        Header(profile)
+        Header(profile, onEditProfile)
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             StatTile(Icons.Rounded.LocalFireDepartment, "${profile.streakDays}", stringResource(Res.string.profile_day_streak), Modifier.weight(1f), iconTint = BookWormColors.Flame)
             StatTile(Icons.Rounded.Star, "${profile.stars}", stringResource(Res.string.profile_stars_earned), Modifier.weight(1f))
             StatTile(Icons.Rounded.Check, "${profile.lessonsDone}", stringResource(Res.string.profile_lessons_done), Modifier.weight(1f), iconTint = BookWormColors.Success)
         }
+
+        if (profile.streakDays > 0) StreakNote(profile)
 
         Section(stringResource(Res.string.profile_this_week)) { Week(profile.week) }
 
@@ -160,13 +183,22 @@ private fun ProfileContent(
             )
         }
 
-        Section(stringResource(Res.string.profile_my_classes)) {
-            profile.classes.forEachIndexed { i, item -> ClassCard(item, i, onClick = { onClassClick(item.subjectId) }) }
+        // Only classes with a learning path have progress to show.
+        if (profile.classes.isNotEmpty()) {
+            Section(stringResource(Res.string.profile_my_classes)) {
+                profile.classes.forEachIndexed { i, item -> ClassCard(item, i, onClick = { onClassClick(item.subjectId) }) }
+            }
         }
 
         Section(stringResource(Res.string.profile_badges)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                profile.badges.forEach { BadgeView(it, Modifier.weight(1f)) }
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                profile.badges.chunked(3).forEach { row ->
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        row.forEach { BadgeView(it, Modifier.weight(1f)) }
+                        // Keep the last row's badges as wide as the others.
+                        repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+                    }
+                }
             }
         }
 
@@ -181,7 +213,7 @@ private fun ProfileContent(
 }
 
 @Composable
-private fun Header(profile: StudentProfile) {
+private fun Header(profile: StudentProfile, onEditProfile: () -> Unit) {
     Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Box(
             Modifier.size(104.dp).clip(CircleShape).background(BookWormColors.SunSoft).border(3.dp, BookWormColors.Border, CircleShape),
@@ -191,8 +223,16 @@ private fun Header(profile: StudentProfile) {
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(profile.name, style = MaterialTheme.typography.headlineMedium.copy(fontSize = 30.sp))
-            Text(stringResource(Res.string.profile_grade, profile.grade), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+            profile.grade?.let {
+                Text(stringResource(Res.string.profile_grade, it), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+            }
         }
+        SmallButton(
+            stringResource(Res.string.edit_profile_open),
+            onClick = onEditProfile,
+            variant = ButtonVariant.Secondary,
+            leadingIcon = Icons.Outlined.Edit,
+        )
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(stringResource(Res.string.profile_level, profile.level), style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp))
@@ -270,7 +310,7 @@ private fun StudentClassRow(item: StudentClass) {
     val waiting = item.status == MembershipStatus.WaitingForTeacher
     BookWormCard(Modifier.fillMaxWidth()) {
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            BadgeTile("${item.grade}")
+            BadgeTile(item.grade?.toString() ?: item.name.take(1).uppercase())
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(item.name, style = MaterialTheme.typography.titleMedium)
                 Text(item.teacherName, style = MaterialTheme.typography.bodySmall, color = BookWormColors.InkMuted)
@@ -310,15 +350,67 @@ private fun ClassCard(item: ClassProgress, index: Int, onClick: () -> Unit) {
 }
 
 private fun BadgeKind.icon(): ImageVector = when (this) {
-    BadgeKind.Star -> Icons.Rounded.Star
+    BadgeKind.FirstLesson -> Icons.Rounded.Check
+    BadgeKind.Lessons -> Icons.Rounded.School
     BadgeKind.Streak -> Icons.Rounded.LocalFireDepartment
-    BadgeKind.Fractions -> Icons.Rounded.PieChart
-    BadgeKind.Quiz -> Icons.Rounded.EmojiEvents
+    BadgeKind.ChapterQuiz -> Icons.Rounded.EmojiEvents
+    BadgeKind.ChapterDone -> Icons.AutoMirrored.Rounded.MenuBook
+    BadgeKind.Stars -> Icons.Rounded.Star
+}
+
+/** Under the stats: whether today's practice still has to happen to keep the streak. */
+@Composable
+private fun StreakNote(profile: StudentProfile) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+            .background(if (profile.practisedToday) BookWormColors.SuccessSoft else BookWormColors.SunSoft)
+            .padding(14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Icon(
+            if (profile.practisedToday) Icons.Rounded.Check else Icons.Rounded.LocalFireDepartment,
+            contentDescription = null,
+            tint = if (profile.practisedToday) BookWormColors.Success else BookWormColors.Flame,
+            modifier = Modifier.size(26.dp),
+        )
+        Text(
+            if (profile.practisedToday) {
+                stringResource(Res.string.profile_streak_safe)
+            } else {
+                stringResource(Res.string.profile_streak_keep, profile.streakDays)
+            },
+            style = MaterialTheme.typography.bodyMedium,
+            color = BookWormColors.Ink,
+        )
+    }
+}
+
+@Composable
+private fun Badge.name(): String = when (kind) {
+    BadgeKind.FirstLesson -> stringResource(Res.string.profile_badge_first_lesson)
+    BadgeKind.Lessons -> pluralStringResource(Res.plurals.profile_badge_lessons, goal, goal)
+    BadgeKind.Streak -> pluralStringResource(Res.plurals.profile_badge_streak, goal, goal)
+    BadgeKind.ChapterQuiz -> stringResource(Res.string.profile_badge_chapter_quiz)
+    BadgeKind.ChapterDone -> stringResource(Res.string.profile_badge_chapter_done)
+    BadgeKind.Stars -> pluralStringResource(Res.plurals.profile_badge_stars, goal, goal)
 }
 
 @Composable
 private fun BadgeView(badge: Badge, modifier: Modifier = Modifier) {
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val name = badge.name()
+    // Badges that take more than one step show how far along the student is.
+    val showProgress = !badge.earned && badge.goal > 1
+    val description = when {
+        badge.earned -> name
+        showProgress -> stringResource(Res.string.profile_badge_progress, stringResource(Res.string.profile_badge_locked, name), badge.progress, badge.goal)
+        else -> stringResource(Res.string.profile_badge_locked, name)
+    }
+    Column(
+        modifier.semantics(mergeDescendants = true) { contentDescription = description },
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         Box(
             Modifier.size(68.dp).clip(CircleShape).background(if (badge.earned) BookWormColors.Sun else BookWormColors.Track),
             contentAlignment = Alignment.Center,
@@ -331,10 +423,14 @@ private fun BadgeView(badge: Badge, modifier: Modifier = Modifier) {
             )
         }
         Text(
-            if (badge.earned) badge.name else stringResource(Res.string.profile_badge_locked, badge.name),
+            name,
             style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp),
             color = if (badge.earned) BookWormColors.Ink else BookWormColors.InkMuted,
             textAlign = TextAlign.Center,
         )
+        if (showProgress) {
+            BookWormProgressBar(badge.progress.toFloat() / badge.goal, Modifier.padding(horizontal = 12.dp), color = BookWormColors.Sun, height = 6.dp)
+            Text("${badge.progress}/${badge.goal}", style = MaterialTheme.typography.labelSmall, color = BookWormColors.InkMuted)
+        }
     }
 }

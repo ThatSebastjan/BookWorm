@@ -45,16 +45,30 @@
     <string name="library_status_mastered">Obvladano</string>
     <string name="library_status_new">Novo</string>
     <string name="library_status_known">%1$d od %2$d znanih</string>
+    <string name="library_empty_title">Še nisi v nobenem razredu</string>
+    <string name="library_empty_body">Pridruži se razredu s kodo, ki ti jo je dal učitelj. Tukaj se bodo pokazali zapiski in kartice.</string>
 
     <!-- Učenje -->
     <string name="learn_change_subject">Zamenjaj predmet, trenutno %1$s</string>
     <string name="learn_chapter_progress">Poglavje %1$d · opravljeno %2$d od %3$d</string>
     <string name="learn_notes">Zapiski</string>
-    <string name="learn_next_chapter">Naslednje · Poglavje %1$d</string>
     <string name="learn_start">Začni</string>
     <string name="learn_lesson_done">%1$s, opravljeno</string>
     <string name="learn_lesson_locked">%1$s, zaklenjeno</string>
     <string name="learn_lesson_start">Začni lekcijo: %1$s</string>
+    <plurals name="learn_lesson_stars">
+        <item quantity="one">%1$d zvezdica za osvojiti</item>
+        <item quantity="two">%1$d zvezdici za osvojiti</item>
+        <item quantity="few">%1$d zvezdice za osvojiti</item>
+        <item quantity="other">%1$d zvezdic za osvojiti</item>
+    </plurals>
+    <string name="learn_empty_body">Pridruži se razredu s kodo, ki ti jo je dal učitelj. Tukaj se bodo pokazale tvoje lekcije.</string>
+    <string name="learn_no_path_title">Učne poti še ni</string>
+    <string name="learn_no_path_body">Učitelj še ni pripravil lekcij za predmet %1$s. Zapiske in kartice lahko že zdaj najdeš v knjižnici.</string>
+    <string name="learn_open_library">Odpri knjižnico</string>
+    <string name="learn_path_done">Vse lekcije na tej poti so opravljene. Bravo!</string>
+    <string name="learn_all_chapters">Vsa poglavja</string>
+    <string name="learn_chapter_number">Poglavje %1$d</string>
 
     <!-- Poglavje -->
     <string name="chapter_eyebrow">%1$s · Poglavje %2$d</string>
@@ -63,13 +77,21 @@
     <string name="chapter_notes_by">Zapiske pripravil(a): %1$s</string>
     <string name="chapter_remember">Zapomni si</string>
     <string name="chapter_practise">Vadi s karticami</string>
-    <string name="chapter_card_of">Kartica %1$d od %2$d</string>
     <string name="chapter_card_word">Pojem</string>
     <string name="chapter_card_meaning">Pomen</string>
     <string name="chapter_tap_to_flip">Tapni, da obrneš</string>
     <string name="chapter_still_learning">Še se učim</string>
     <string name="chapter_got_it">Znam</string>
     <string name="chapter_no_flashcards">V tem poglavju še ni kartic.</string>
+    <string name="chapter_mastered_body">Odlično! Ko jih želiš ponoviti, začni znova.</string>
+    <string name="chapter_start_over">Začni znova</string>
+    <string name="chapter_start_over_failed">Ni uspelo. Preveri internetno povezavo in poskusi znova.</string>
+    <plurals name="chapter_mastered_title">
+        <item quantity="one">Znaš to kartico!</item>
+        <item quantity="two">Znaš obe kartici!</item>
+        <item quantity="few">Znaš vse %1$d kartice!</item>
+        <item quantity="other">Znaš vseh %1$d kartic!</item>
+    </plurals>
 
     <!-- Lekcija -->
     <string name="lesson_close">Zapri lekcijo</string>
@@ -88,12 +110,7 @@
     <string name="lesson_your_answer">Tvoj odgovor</string>
     <string name="lesson_blank_empty">Prazno mesto</string>
     <string name="lesson_blank_filled">Vstavljeno: %1$s. Tapni, da izbrišeš.</string>
-    <plurals name="lesson_correct_title">
-        <item quantity="one">Odlično! +%1$d zvezdica</item>
-        <item quantity="two">Odlično! +%1$d zvezdici</item>
-        <item quantity="few">Odlično! +%1$d zvezdice</item>
-        <item quantity="other">Odlično! +%1$d zvezdic</item>
-    </plurals>
+    <string name="lesson_correct_title">Odlično!</string>
     <string name="lesson_wrong_title">Še ne čisto</string>
     <string name="lesson_leave_title">Želiš zapustiti lekcijo?</string>
     <string name="lesson_leave_body">Napredek v tej lekciji se ne bo shranil.</string>
@@ -108,6 +125,13 @@
         <item quantity="other">Prislužil(a) si %1$d zvezdic</item>
     </plurals>
     <string name="lesson_finish">Končano</string>
+    <string name="lesson_complete_no_stars">Zvezdice za to lekcijo si že dobil(a). Vaja dela mojstra!</string>
+    <plurals name="lesson_stars_to_win">
+        <item quantity="one">Ko končaš, dobiš %1$d zvezdico</item>
+        <item quantity="two">Ko končaš, dobiš %1$d zvezdici</item>
+        <item quantity="few">Ko končaš, dobiš %1$d zvezdice</item>
+        <item quantity="other">Ko končaš, dobiš %1$d zvezdic</item>
+    </plurals>
 
     <!-- Profil -->
     <string name="profile_grade">%1$d. razred</string>
@@ -122,6 +146,42 @@
     <string name="profile_chapter_of">Poglavje %1$d od %2$d</string>
     <string name="profile_badges">Značke</string>
     <string name="profile_badge_locked">%1$s (zaklenjeno)</string>
+    <string name="edit_profile_title">Uredi profil</string>
+    <string name="edit_profile_open">Uredi profil</string>
+    <string name="edit_profile_details">Tvoje ime</string>
+    <string name="edit_profile_email_hint">Z e-pošto se prijavljaš, zato je ni mogoče spremeniti.</string>
+    <string name="edit_profile_save">Shrani</string>
+    <string name="edit_profile_saved">Shranjeno!</string>
+    <string name="edit_profile_password">Geslo</string>
+    <string name="edit_profile_current_password">Trenutno geslo</string>
+    <string name="edit_profile_new_password">Novo geslo</string>
+    <string name="edit_profile_change_password">Spremeni geslo</string>
+    <string name="edit_profile_password_changed">Geslo je spremenjeno.</string>
+    <string name="edit_profile_wrong_password">To ni tvoje trenutno geslo.</string>
+    <string name="profile_streak_keep">Vadi še danes, da ohraniš niz %1$d dni!</string>
+    <string name="profile_streak_safe">Danes si že vadil(a). Tvoj niz je varen!</string>
+    <string name="profile_badge_progress">%1$s, %2$d od %3$d</string>
+    <string name="profile_badge_chapter_done">Končano poglavje</string>
+    <plurals name="profile_badge_lessons">
+        <item quantity="one">%1$d lekcija</item>
+        <item quantity="two">%1$d lekciji</item>
+        <item quantity="few">%1$d lekcije</item>
+        <item quantity="other">%1$d lekcij</item>
+    </plurals>
+    <plurals name="profile_badge_streak">
+        <item quantity="one">%1$d dan zapored</item>
+        <item quantity="two">%1$d dneva zapored</item>
+        <item quantity="few">%1$d dnevi zapored</item>
+        <item quantity="other">%1$d dni zapored</item>
+    </plurals>
+    <plurals name="profile_badge_stars">
+        <item quantity="one">%1$d zvezdica</item>
+        <item quantity="two">%1$d zvezdici</item>
+        <item quantity="few">%1$d zvezdice</item>
+        <item quantity="other">%1$d zvezdic</item>
+    </plurals>
+    <string name="profile_badge_first_lesson">Prva lekcija</string>
+    <string name="profile_badge_chapter_quiz">Kviz poglavja</string>
     <string name="profile_day_practised">%1$s, vadil(a)</string>
     <string name="profile_day_not_yet">%1$s, še ne</string>
     <string-array name="profile_weekday_initials">
@@ -147,8 +207,9 @@
     <string name="auth_login_title">Lepo, da si spet tu!</string>
     <string name="auth_login_subtitle">Prijavi se in nadaljuj z učenjem.</string>
     <string name="auth_register_title">Ustvari račun</string>
-    <string name="auth_register_subtitle">Kodo razreda ti da tvoj učitelj.</string>
-    <string name="auth_name">Tvoje ime</string>
+    <string name="auth_register_subtitle">Vzame le minuto.</string>
+    <string name="auth_name">Ime</string>
+    <string name="auth_surname">Priimek</string>
     <string name="auth_email">E-pošta</string>
     <string name="auth_password">Geslo</string>
     <string name="auth_class_code">Koda razreda</string>
@@ -161,10 +222,11 @@
     <string name="auth_go_login">Prijava</string>
     <string name="auth_error_required">To polje je obvezno.</string>
     <string name="auth_error_email">Vpiši veljaven e-poštni naslov.</string>
-    <string name="auth_error_password_short">Uporabi vsaj %1$d znakov.</string>
+    <string name="auth_error_password_short">Uporabi vsaj %1$d znakov, med njimi vsaj eno črko in eno številko.</string>
     <string name="auth_error_credentials">Napačen e-poštni naslov ali geslo.</string>
     <string name="auth_error_email_taken">Račun s tem e-poštnim naslovom že obstaja.</string>
-    <string name="auth_error_class_code">Te kode razreda ne najdemo. Preveri jo pri učitelju.</string>
+    <string name="auth_error_wrong_role">S tem računom se v to aplikacijo ne moreš prijaviti.</string>
+    <string name="auth_error_invalid_details">Nekateri podatki niso bili sprejeti. Preveri jih in poskusi znova.</string>
     <string name="auth_error_network">Povezava ni uspela. Preveri internet in poskusi znova.</string>
     <string name="auth_logout">Odjava</string>
     <string name="auth_logout_title">Se želiš odjaviti?</string>

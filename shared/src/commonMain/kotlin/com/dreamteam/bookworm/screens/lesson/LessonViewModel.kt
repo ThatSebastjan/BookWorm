@@ -39,7 +39,6 @@ data class LessonUiState(
     val index: Int = 0,
     val draft: AnswerDraft = AnswerDraft(),
     val phase: Phase = Phase.Answering,
-    val starsEarned: Int = 0,
     val submitFailed: Boolean = false,
     val finishing: Boolean = false,
     val summary: LessonSummary? = null,
@@ -124,7 +123,7 @@ class LessonViewModel(
         viewModelScope.launch {
             when (val result = loadState { repository.submitAnswer(lessonId, question.id, answer) }) {
                 is UiState.Success -> _state.update {
-                    it.copy(phase = Phase.Checked(result.data), starsEarned = it.starsEarned + result.data.starsEarned)
+                    it.copy(phase = Phase.Checked(result.data))
                 }
                 else -> _state.update { it.copy(phase = Phase.Answering, submitFailed = true) }
             }

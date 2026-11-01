@@ -1,5 +1,7 @@
 package com.dreamteam.bookworm.teacher
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,12 +15,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.UnfoldMore
@@ -31,11 +33,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,14 +51,16 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.dreamteam.bookworm.data.remote.PreferencesSessionStore
 import com.dreamteam.bookworm.di.AppContainer
 import com.dreamteam.bookworm.di.LocalAppContainer
+import com.dreamteam.bookworm.domain.model.GRADES
 import com.dreamteam.bookworm.domain.model.TeacherProfile
+import com.dreamteam.bookworm.domain.model.UserRole
 import com.dreamteam.bookworm.domain.repository.TeacherRepository
 import com.dreamteam.bookworm.navigation.ScopedViewModelStore
 import com.dreamteam.bookworm.teacher.components.BookWormDropdown
 import com.dreamteam.bookworm.teacher.components.BookWormFormDialog
-import com.dreamteam.bookworm.teacher.navigation.QuizDestination
 import com.dreamteam.bookworm.teacher.navigation.TeacherSection
 import com.dreamteam.bookworm.teacher.platform.LocalTeacherPlatform
 import com.dreamteam.bookworm.teacher.platform.NoTeacherPlatform
@@ -66,26 +69,27 @@ import com.dreamteam.bookworm.teacher.resources.Res
 import com.dreamteam.bookworm.teacher.resources.app_name
 import com.dreamteam.bookworm.teacher.resources.profile_grade
 import com.dreamteam.bookworm.teacher.resources.teacher_cancel
-import com.dreamteam.bookworm.teacher.resources.teacher_cards_to_review
+import com.dreamteam.bookworm.teacher.resources.teacher_no_classroom
 import com.dreamteam.bookworm.teacher.resources.teacher_class_grade
 import com.dreamteam.bookworm.teacher.resources.teacher_class_name
 import com.dreamteam.bookworm.teacher.resources.teacher_class_name_hint
 import com.dreamteam.bookworm.teacher.resources.teacher_class_students
 import com.dreamteam.bookworm.teacher.resources.teacher_create
 import com.dreamteam.bookworm.teacher.resources.teacher_for_teachers
+import com.dreamteam.bookworm.teacher.resources.teacher_log_out
 import com.dreamteam.bookworm.teacher.resources.teacher_new_class
 import com.dreamteam.bookworm.teacher.resources.teacher_new_class_title
 import com.dreamteam.bookworm.teacher.resources.teacher_switch_class
 import com.dreamteam.bookworm.teacher.screens.classroom.ClassroomScreen
 import com.dreamteam.bookworm.teacher.screens.curriculum.CurriculumScreen
-import com.dreamteam.bookworm.teacher.screens.live.LiveQuizScreen
-import com.dreamteam.bookworm.teacher.screens.materials.MaterialsScreen
-import com.dreamteam.bookworm.teacher.screens.quizsetup.QuizSetupScreen
-import com.dreamteam.bookworm.teacher.screens.reveal.RevealScreen
-import com.dreamteam.bookworm.teacher.screens.review.ReviewScreen
+import com.dreamteam.bookworm.teacher.screens.login.TeacherLoginScreen
+import com.dreamteam.bookworm.teacher.screens.login.TeacherRegisterScreen
+import com.dreamteam.bookworm.teacher.screens.account.AccountScreen
+import com.dreamteam.bookworm.teacher.screens.classes.ClassesScreen
 import com.dreamteam.bookworm.ui.UiState
 import com.dreamteam.bookworm.ui.loadState
 import com.dreamteam.bookworm.ui_components.BookWormColors
+import com.dreamteam.bookworm.ui_components.BookWormButton
 import com.dreamteam.bookworm.ui_components.BookWormTextField
 import com.dreamteam.bookworm.ui_components.BookWormTheme
 import com.dreamteam.bookworm.ui_components.LoadingView
@@ -98,8 +102,8 @@ import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Loads the teacher shown in the sidebar and the "cards to review" badge, and
- * keeps track of which of the teacher's classes the class-specific screens show.
+ * Loads the teacher and their classrooms for the sidebar, and keeps track of which
+ * classroom the Classroom screen shows.
  */
 class TeacherShellViewModel(private val repository: TeacherRepository) : ViewModel() {
 
@@ -108,7 +112,7 @@ class TeacherShellViewModel(private val repository: TeacherRepository) : ViewMod
 
     private val _classId = MutableStateFlow<String?>(null)
 
-    /** The class Classroom and Pop quiz work with; the first class until the teacher picks another. */
+    /** The classroom the Classroom screen shows; the first one until the teacher picks another. */
     val classId: StateFlow<String?> = _classId.asStateFlow()
 
     private val _createClassFailed = MutableStateFlow(false)
@@ -118,7 +122,7 @@ class TeacherShellViewModel(private val repository: TeacherRepository) : ViewMod
         refresh()
     }
 
-    /** Keeps showing the last profile while refreshing, so the badge doesn't flicker. */
+    /** Keeps showing the last profile while refreshing, so the sidebar doesn't flicker. */
     fun refresh() {
         viewModelScope.launch {
             val loaded = loadState { repository.getTeacher() }
@@ -132,9 +136,9 @@ class TeacherShellViewModel(private val repository: TeacherRepository) : ViewMod
         _classId.value = classId
     }
 
-    fun createClass(name: String, grade: Int) {
+    fun createClassroom(name: String, grade: Int) {
         viewModelScope.launch {
-            when (val created = loadState { repository.createClass(name.trim(), grade) }) {
+            when (val created = loadState { repository.createClassroom(name.trim(), grade) }) {
                 is UiState.Success -> {
                     _createClassFailed.value = false
                     _classId.value = created.data.id
@@ -147,82 +151,78 @@ class TeacherShellViewModel(private val repository: TeacherRepository) : ViewMod
     }
 }
 
-/** The teacher desktop app: a sidebar with the sections and a class switcher, and full-window pop quiz screens. */
+/**
+ * The teacher desktop app: sign-in first, then a sidebar with the sections and a class switcher.
+ * Only teacher accounts can sign in.
+ */
 @Composable
 fun TeacherApp(
     platform: TeacherPlatform = NoTeacherPlatform,
-    container: AppContainer = remember { AppContainer.fake() },
+    container: AppContainer = remember {
+        AppContainer.create(sessionStore = PreferencesSessionStore(), requiredRole = UserRole.Teacher)
+    },
 ) {
+    // A session remembered from last time shows the app straight away; this checks it's still valid.
+    LaunchedEffect(container) { container.authRepository.verifySession() }
     CompositionLocalProvider(LocalAppContainer provides container, LocalTeacherPlatform provides platform) {
         BookWormTheme {
-            ScopedViewModelStore("teacher") {
+            val session by container.authRepository.session.collectAsStateWithLifecycle()
+            val signedIn = session
+            val scope = rememberCoroutineScope()
+            // A fresh ViewModel store per teacher, so nothing from a previous account lingers after logging out.
+            var registering by rememberSaveable { mutableStateOf(false) }
+            if (signedIn == null) {
+                if (registering) {
+                    ScopedViewModelStore("register") { TeacherRegisterScreen(onLoginClick = { registering = false }) }
+                } else {
+                    ScopedViewModelStore("login") { TeacherLoginScreen(onRegisterClick = { registering = true }) }
+                }
+            } else ScopedViewModelStore(signedIn.userId) {
                 val shell = viewModel { TeacherShellViewModel(container.teacherRepository) }
                 val teacher by shell.teacher.collectAsStateWithLifecycle()
                 val classId by shell.classId.collectAsStateWithLifecycle()
                 var showNewClass by remember { mutableStateOf(false) }
 
-                var section by rememberSaveable { mutableStateOf(TeacherSection.Materials) }
-                var reviewUploadId by remember { mutableStateOf<String?>(null) }
-                var quiz by remember { mutableStateOf<QuizDestination?>(null) }
-
+                var section by rememberSaveable { mutableStateOf(TeacherSection.Classes) }
                 fun open(target: TeacherSection) {
-                    quiz = null
-                    if (target == TeacherSection.Flashcards) reviewUploadId = null
                     section = target
                 }
 
-                LaunchedEffect(section, quiz) { shell.refresh() }
+                LaunchedEffect(section) { shell.refresh() }
 
-                when (val current = quiz) {
-                    is QuizDestination.Live -> ScopedViewModelStore(current) {
-                        LiveQuizScreen(
-                            quizId = current.quizId,
-                            onShowResults = { quiz = QuizDestination.Reveal(current.quizId) },
-                            onEnd = { open(TeacherSection.Classroom) },
-                        )
-                    }
-                    is QuizDestination.Reveal -> ScopedViewModelStore(current) {
-                        RevealScreen(quizId = current.quizId, onEnd = { open(TeacherSection.Classroom) })
-                    }
-                    null -> Row(Modifier.fillMaxSize().background(BookWormColors.Background)) {
-                        Sidebar(
-                            current = section,
-                            teacher = (teacher as? UiState.Success)?.data,
-                            classId = classId,
-                            onSelect = ::open,
-                            onSelectClass = shell::selectClass,
-                            onNewClass = { showNewClass = true },
-                        )
-                        Box(Modifier.weight(1f).fillMaxHeight()) {
-                            // Class screens reload when the teacher switches class.
-                            ScopedViewModelStore(listOf(section, reviewUploadId, classId)) {
-                                when (section) {
-                                    TeacherSection.Materials -> MaterialsScreen(
-                                        onReview = { uploadId ->
-                                            reviewUploadId = uploadId
-                                            section = TeacherSection.Flashcards
-                                        },
+                Row(Modifier.fillMaxSize().background(BookWormColors.Background)) {
+                    Sidebar(
+                        current = section,
+                        teacher = (teacher as? UiState.Success)?.data,
+                        teacherName = "${signedIn.name} ${signedIn.surname}",
+                        classId = classId,
+                        onSelect = ::open,
+                        onSelectClass = shell::selectClass,
+                        onNewClass = { showNewClass = true },
+                        onLogout = { scope.launch { container.authRepository.logout() } },
+                    )
+                    Box(Modifier.weight(1f).fillMaxHeight()) {
+                        // Class screens reload when the teacher switches class.
+                        ScopedViewModelStore(listOf(section, classId)) {
+                            when (section) {
+                                TeacherSection.Classes -> ClassesScreen()
+                                TeacherSection.Profile -> AccountScreen(
+                                    onOpenClassroom = { id ->
+                                        shell.selectClass(id)
+                                        open(TeacherSection.Classroom)
+                                    },
+                                    onLogout = { scope.launch { container.authRepository.logout() } },
+                                )
+                                TeacherSection.LearningPaths -> CurriculumScreen()
+                                TeacherSection.Classroom -> classId?.let { id ->
+                                    ClassroomScreen(
+                                        classId = id,
+                                        onManagePaths = { open(TeacherSection.LearningPaths) },
+                                        onManageClasses = { open(TeacherSection.Classes) },
+                                        // They left a classroom they co-taught: show another one.
+                                        onLeft = shell::refresh,
                                     )
-                                    TeacherSection.Flashcards -> ReviewScreen(
-                                        uploadId = reviewUploadId,
-                                        onCardsChanged = shell::refresh,
-                                        onUpload = { open(TeacherSection.Materials) },
-                                    )
-                                    TeacherSection.LearningPaths -> CurriculumScreen()
-                                    TeacherSection.Classroom -> classId?.let { id ->
-                                        ClassroomScreen(
-                                            classId = id,
-                                            onSetUpQuiz = { open(TeacherSection.PopQuiz) },
-                                            onManagePaths = { open(TeacherSection.LearningPaths) },
-                                        )
-                                    } ?: LoadingView()
-                                    TeacherSection.PopQuiz -> classId?.let { id ->
-                                        QuizSetupScreen(
-                                            classId = id,
-                                            onStarted = { quiz = QuizDestination.Live(it) },
-                                        )
-                                    } ?: LoadingView()
-                                }
+                                } ?: NoClassroom(teacher, onNew = { showNewClass = true })
                             }
                         }
                     }
@@ -231,7 +231,7 @@ fun TeacherApp(
                 if (showNewClass) {
                     NewClassDialog(
                         onCreate = { name, grade ->
-                            shell.createClass(name, grade)
+                            shell.createClassroom(name, grade)
                             showNewClass = false
                         },
                         onDismiss = { showNewClass = false },
@@ -246,10 +246,12 @@ fun TeacherApp(
 private fun Sidebar(
     current: TeacherSection,
     teacher: TeacherProfile?,
+    teacherName: String,
     classId: String?,
     onSelect: (TeacherSection) -> Unit,
     onSelectClass: (String) -> Unit,
     onNewClass: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -277,26 +279,27 @@ private fun Sidebar(
 
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             TeacherSection.entries.forEach { section ->
-                val badge = if (section == TeacherSection.Flashcards) teacher?.cardsToReview?.takeIf { it > 0 } else null
-                SidebarItem(section, selected = section == current, badge = badge, onClick = { onSelect(section) })
+                SidebarItem(section, selected = section == current, onClick = { onSelect(section) })
             }
         }
 
         Box(Modifier.weight(1f))
 
         if (teacher != null) {
-            ClassSwitcher(teacher, classId, onSelectClass, onNewClass)
+            ClassSwitcher(teacher, teacherName, classId, onSelectClass, onNewClass, onLogout)
         }
     }
 }
 
-/** The teacher card at the bottom of the sidebar; opens a menu of the teacher's classes. */
+/** The teacher card at the bottom of the sidebar; opens a menu of the teacher's classes and logging out. */
 @Composable
 private fun ClassSwitcher(
     teacher: TeacherProfile,
+    teacherName: String,
     classId: String?,
     onSelectClass: (String) -> Unit,
     onNewClass: () -> Unit,
+    onLogout: () -> Unit,
 ) {
     var expanded by remember { mutableStateOf(false) }
     val current = teacher.classes.firstOrNull { it.id == classId }
@@ -316,10 +319,10 @@ private fun ClassSwitcher(
                 Modifier.size(40.dp).clip(CircleShape).background(BookWormColors.PrimarySoft),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(teacher.name.take(1), style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp), color = BookWormColors.PrimaryDark)
+                Text(teacherName.take(1), style = MaterialTheme.typography.titleMedium.copy(fontSize = 18.sp), color = BookWormColors.PrimaryDark)
             }
             Column(Modifier.weight(1f)) {
-                Text(teacher.name, style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp))
+                Text(teacherName, style = MaterialTheme.typography.labelMedium.copy(fontSize = 14.sp))
                 Text(current?.name.orEmpty(), style = MaterialTheme.typography.bodySmall.copy(fontSize = 14.sp), color = BookWormColors.InkMuted)
             }
             Icon(Icons.Rounded.UnfoldMore, contentDescription = null, tint = BookWormColors.InkMuted)
@@ -357,6 +360,15 @@ private fun ClassSwitcher(
                     onNewClass()
                 },
             )
+            HorizontalDivider(color = BookWormColors.Divider)
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.teacher_log_out), style = MaterialTheme.typography.labelMedium) },
+                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.Logout, contentDescription = null, tint = BookWormColors.InkMuted) },
+                onClick = {
+                    expanded = false
+                    onLogout()
+                },
+            )
         }
     }
 }
@@ -364,7 +376,7 @@ private fun ClassSwitcher(
 @Composable
 private fun NewClassDialog(onCreate: (name: String, grade: Int) -> Unit, onDismiss: () -> Unit) {
     var name by remember { mutableStateOf("") }
-    var grade by remember { mutableStateOf(3) }
+    var grade by remember { mutableStateOf(GRADES.first) }
     BookWormFormDialog(
         title = stringResource(Res.string.teacher_new_class_title),
         onDismissRequest = onDismiss,
@@ -381,7 +393,7 @@ private fun NewClassDialog(onCreate: (name: String, grade: Int) -> Unit, onDismi
         )
         BookWormDropdown(
             label = stringResource(Res.string.teacher_class_grade),
-            options = (1..9).toList(),
+            options = GRADES.toList(),
             selected = grade,
             onSelect = { grade = it },
             optionLabel = { stringResource(Res.string.profile_grade, it) },
@@ -393,11 +405,9 @@ private fun NewClassDialog(onCreate: (name: String, grade: Int) -> Unit, onDismi
 private fun SidebarItem(
     section: TeacherSection,
     selected: Boolean,
-    badge: Int?,
     onClick: () -> Unit,
 ) {
     val color = if (selected) BookWormColors.PrimaryDark else BookWormColors.InkMuted
-    val badgeDescription = badge?.let { pluralStringResource(Res.plurals.teacher_cards_to_review, it, it) }
     val label = stringResource(section.label)
     Row(
         modifier = Modifier
@@ -406,27 +416,30 @@ private fun SidebarItem(
             .clip(RoundedCornerShape(14.dp))
             .background(if (selected) BookWormColors.PrimarySoft else BookWormColors.Surface)
             .selectable(selected = selected, role = Role.Tab, onClick = onClick)
-            .semantics(mergeDescendants = true) {
-                contentDescription = if (badgeDescription != null) "$label, $badgeDescription" else label
-            }
+            .semantics(mergeDescendants = true) { contentDescription = label }
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Icon(section.icon, contentDescription = null, tint = color, modifier = Modifier.size(22.dp))
         Text(label, style = MaterialTheme.typography.labelMedium.copy(fontSize = 16.sp), color = color, modifier = Modifier.weight(1f))
-        if (badge != null) {
-            Box(
-                Modifier
-                    .widthIn(min = 24.dp)
-                    .heightIn(min = 24.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(BookWormColors.Sun)
-                    .padding(horizontal = 7.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("$badge", style = MaterialTheme.typography.labelMedium.copy(fontSize = 13.sp), color = BookWormColors.Ink)
-            }
-        }
+    }
+}
+
+/** The Classroom screen needs a classroom: loading until the teacher is known, then a prompt to create one. */
+@Composable
+private fun NoClassroom(teacher: UiState<TeacherProfile>, onNew: () -> Unit) {
+    if (teacher !is UiState.Success) {
+        LoadingView()
+        return
+    }
+    Column(
+        Modifier.fillMaxSize().padding(40.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        MascotIcon(Modifier.size(72.dp))
+        Text(stringResource(Res.string.teacher_no_classroom), style = MaterialTheme.typography.bodyLarge, color = BookWormColors.InkMuted)
+        BookWormButton(stringResource(Res.string.teacher_new_class_title), onNew, leadingIcon = Icons.Rounded.Add)
     }
 }

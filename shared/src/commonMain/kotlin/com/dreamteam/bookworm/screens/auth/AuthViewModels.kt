@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.dreamteam.bookworm.domain.model.AuthException
 import com.dreamteam.bookworm.domain.model.AuthFailure
 import com.dreamteam.bookworm.domain.model.Registration
-import com.dreamteam.bookworm.domain.model.normalizeClassCode
 import com.dreamteam.bookworm.domain.repository.AuthRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /** A problem with one field, found before anything is sent. */
-enum class FieldError { Required, InvalidEmail, PasswordTooShort }
+enum class FieldError { Required, InvalidEmail, PasswordTooWeak }
 
 /** Why the last submit failed; [Network] covers everything that isn't an [AuthFailure]. */
 sealed interface SubmitError {
@@ -24,6 +23,10 @@ sealed interface SubmitError {
 }
 
 const val MIN_PASSWORD_LENGTH = 8
+
+/** Same rule as the backend: at least 8 characters, with a letter and a number. */
+private fun isStrongPassword(password: String) =
+    password.length >= MIN_PASSWORD_LENGTH && password.any { it.isLetter() } && password.any { it.isDigit() }
 
 private fun validateEmail(email: String) = when {
     email.isBlank() -> FieldError.Required
@@ -40,7 +43,7 @@ private suspend fun submit(block: suspend () -> Unit): SubmitError? = try {
 } catch (e: AuthException) {
     SubmitError.Auth(e.failure)
 } catch (e: Exception) {
-    SubmitError.Network
+    println("BWDEBUG " + e.stackTraceToString().take(1500)); SubmitError.Network
 }
 
 data class LoginUiState(
@@ -80,13 +83,13 @@ class LoginViewModel(private val auth: AuthRepository) : ViewModel() {
 
 data class RegisterUiState(
     val name: String = "",
+    val surname: String = "",
     val email: String = "",
     val password: String = "",
-    val classCode: String = "",
     val nameError: FieldError? = null,
+    val surnameError: FieldError? = null,
     val emailError: FieldError? = null,
     val passwordError: FieldError? = null,
-    val classCodeError: FieldError? = null,
     val submitting: Boolean = false,
     val error: SubmitError? = null,
 )
@@ -99,29 +102,29 @@ class RegisterViewModel(private val auth: AuthRepository) : ViewModel() {
     fun setName(value: String) = _state.update { it.copy(name = value, nameError = null, error = null) }
     fun setEmail(value: String) = _state.update { it.copy(email = value, emailError = null, error = null) }
     fun setPassword(value: String) = _state.update { it.copy(password = value, passwordError = null, error = null) }
-    fun setClassCode(value: String) = _state.update { it.copy(classCode = value.uppercase(), classCodeError = null, error = null) }
+    fun setSurname(value: String) = _state.update { it.copy(surname = value, surnameError = null, error = null) }
 
     fun register() {
         val current = _state.value
         if (current.submitting) return
         val checked = current.copy(
             nameError = if (current.name.isBlank()) FieldError.Required else null,
+            surnameError = if (current.surname.isBlank()) FieldError.Required else null,
             emailError = validateEmail(current.email),
             passwordError = when {
                 current.password.isEmpty() -> FieldError.Required
-                current.password.length < MIN_PASSWORD_LENGTH -> FieldError.PasswordTooShort
+                !isStrongPassword(current.password) -> FieldError.PasswordTooWeak
                 else -> null
             },
-            classCodeError = if (current.classCode.isBlank()) FieldError.Required else null,
         )
-        if (listOf(checked.nameError, checked.emailError, checked.passwordError, checked.classCodeError).any { it != null }) {
+        if (listOf(checked.nameError, checked.surnameError, checked.emailError, checked.passwordError).any { it != null }) {
             _state.value = checked
             return
         }
         _state.update { it.copy(submitting = true, error = null) }
         viewModelScope.launch {
             val error = submit {
-                auth.register(Registration(current.name.trim(), current.email.trim(), current.password, normalizeClassCode(current.classCode)))
+                auth.register(Registration(current.name.trim(), current.surname.trim(), current.email.trim(), current.password))
             }
             _state.update { it.copy(submitting = false, error = error) }
         }

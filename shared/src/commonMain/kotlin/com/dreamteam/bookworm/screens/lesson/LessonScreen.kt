@@ -43,6 +43,7 @@ import bookworm.shared.generated.resources.common_error_title
 import bookworm.shared.generated.resources.common_try_again
 import bookworm.shared.generated.resources.lesson_close
 import bookworm.shared.generated.resources.lesson_complete_score
+import bookworm.shared.generated.resources.lesson_complete_no_stars
 import bookworm.shared.generated.resources.lesson_complete_stars
 import bookworm.shared.generated.resources.lesson_complete_title
 import bookworm.shared.generated.resources.lesson_correct_title
@@ -54,6 +55,7 @@ import bookworm.shared.generated.resources.lesson_leave_title
 import bookworm.shared.generated.resources.lesson_not_ready_body
 import bookworm.shared.generated.resources.lesson_not_ready_title
 import bookworm.shared.generated.resources.lesson_question_of
+import bookworm.shared.generated.resources.lesson_stars_to_win
 import bookworm.shared.generated.resources.lesson_type_blank
 import bookworm.shared.generated.resources.lesson_type_choice
 import bookworm.shared.generated.resources.lesson_type_match
@@ -61,7 +63,6 @@ import bookworm.shared.generated.resources.lesson_type_multi
 import bookworm.shared.generated.resources.lesson_type_order
 import bookworm.shared.generated.resources.lesson_type_typed
 import bookworm.shared.generated.resources.lesson_wrong_title
-import bookworm.shared.generated.resources.stars_count
 import com.dreamteam.bookworm.di.LocalAppContainer
 import com.dreamteam.bookworm.domain.model.LessonSummary
 import com.dreamteam.bookworm.domain.model.Question
@@ -93,18 +94,19 @@ fun LessonScreen(lessonId: String, onClose: () -> Unit) {
     val canLeaveFreely = state.summary != null || (state.lesson is UiState.Success && state.questionCount == 0)
     PlatformBackHandler { if (canLeaveFreely) onClose() else confirmLeave = true }
 
-    StateContent(state.lesson, onRetry = viewModel::load) {
+    StateContent(state.lesson, onRetry = viewModel::load) { lesson ->
         Column(Modifier.fillMaxSize().background(BookWormColors.Background)) {
             val summary = state.summary
             if (state.questionCount == 0) {
                 LessonNotReady(onClose)
             } else if (summary != null) {
-                LessonComplete(summary, onDone = onClose)
+                LessonComplete(summary, alreadyDone = lesson.alreadyDone, onDone = onClose)
             } else {
                 LessonHeader(
                     index = state.index,
                     total = state.questionCount,
-                    stars = state.starsEarned,
+                    // The stars to win; none the second time round.
+                    stars = lesson.stars.takeUnless { lesson.alreadyDone },
                     onClose = { confirmLeave = true },
                 )
                 state.question?.let { question ->
@@ -177,9 +179,8 @@ private fun Question.typeLabel() = when (this) {
 }
 
 @Composable
-private fun LessonHeader(index: Int, total: Int, stars: Int, onClose: () -> Unit) {
+private fun LessonHeader(index: Int, total: Int, stars: Int?, onClose: () -> Unit) {
     val progressLabel = stringResource(Res.string.lesson_question_of, index + 1, total)
-    val starsLabel = pluralStringResource(Res.plurals.stars_count, stars, stars)
     Row(
         Modifier.fillMaxWidth().padding(start = 12.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -191,13 +192,16 @@ private fun LessonHeader(index: Int, total: Int, stars: Int, onClose: () -> Unit
             modifier = Modifier.weight(1f).semantics { contentDescription = progressLabel },
             height = 16.dp,
         )
-        Row(
-            Modifier.semantics(mergeDescendants = true) { contentDescription = starsLabel },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Icon(Icons.Rounded.Star, contentDescription = null, tint = BookWormColors.Sun, modifier = Modifier.size(22.dp))
-            Text("$stars", style = MaterialTheme.typography.labelMedium.copy(fontSize = 16.sp))
+        if (stars != null && stars > 0) {
+            val starsLabel = pluralStringResource(Res.plurals.lesson_stars_to_win, stars, stars)
+            Row(
+                Modifier.semantics(mergeDescendants = true) { contentDescription = starsLabel },
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Icon(Icons.Rounded.Star, contentDescription = null, tint = BookWormColors.Sun, modifier = Modifier.size(22.dp))
+                Text("+$stars", style = MaterialTheme.typography.labelMedium.copy(fontSize = 16.sp))
+            }
         }
     }
 }
@@ -211,11 +215,7 @@ private fun LessonFooter(state: LessonUiState, onCheck: () -> Unit, onRetry: () 
             if (state.submitFailed) ErrorLine()
             FeedbackPanel(
                 tone = if (result.correct) FeedbackTone.Correct else FeedbackTone.Wrong,
-                title = if (result.correct) {
-                    pluralStringResource(Res.plurals.lesson_correct_title, result.starsEarned, result.starsEarned)
-                } else {
-                    stringResource(Res.string.lesson_wrong_title)
-                },
+                title = stringResource(if (result.correct) Res.string.lesson_correct_title else Res.string.lesson_wrong_title),
                 message = result.explanation,
                 actionText = stringResource(if (result.correct) Res.string.common_continue else Res.string.common_try_again),
                 onAction = if (result.correct) onNext else onRetry,
@@ -246,7 +246,7 @@ private fun ErrorLine() {
 }
 
 @Composable
-private fun LessonComplete(summary: LessonSummary, onDone: () -> Unit) {
+private fun LessonComplete(summary: LessonSummary, alreadyDone: Boolean, onDone: () -> Unit) {
     Column(
         Modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -261,12 +261,20 @@ private fun LessonComplete(summary: LessonSummary, onDone: () -> Unit) {
         Spacer(Modifier.size(24.dp))
         Text(stringResource(Res.string.lesson_complete_title), style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
         Spacer(Modifier.size(8.dp))
-        Text(
-            pluralStringResource(Res.plurals.lesson_complete_stars, summary.starsEarned, summary.starsEarned),
-            style = MaterialTheme.typography.titleLarge,
-            color = BookWormColors.PrimaryDark,
-            textAlign = TextAlign.Center,
-        )
+        when {
+            summary.starsEarned > 0 -> Text(
+                pluralStringResource(Res.plurals.lesson_complete_stars, summary.starsEarned, summary.starsEarned),
+                style = MaterialTheme.typography.titleLarge,
+                color = BookWormColors.PrimaryDark,
+                textAlign = TextAlign.Center,
+            )
+            alreadyDone -> Text(
+                stringResource(Res.string.lesson_complete_no_stars),
+                style = MaterialTheme.typography.bodyLarge,
+                color = BookWormColors.InkMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
         Text(
             stringResource(Res.string.lesson_complete_score, summary.correctAnswers, summary.totalQuestions),
             style = MaterialTheme.typography.bodyLarge,

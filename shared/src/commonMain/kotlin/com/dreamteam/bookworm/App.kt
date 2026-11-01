@@ -11,6 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import com.dreamteam.bookworm.navigation.Destination
 import com.dreamteam.bookworm.navigation.ScopedViewModelStore
 import com.dreamteam.bookworm.navigation.Tab
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.dreamteam.bookworm.screens.account.EditProfileScreen
 import com.dreamteam.bookworm.screens.auth.LoginScreen
 import com.dreamteam.bookworm.screens.auth.RegisterScreen
 import com.dreamteam.bookworm.screens.chapter.ChapterScreen
@@ -42,7 +44,9 @@ import org.jetbrains.compose.resources.stringResource
 
 @Composable
 @Preview
-fun App(container: AppContainer = remember { AppContainer.fake() }) {
+fun App(container: AppContainer = remember { AppContainer.create() }) {
+    // A session remembered from last time shows the app straight away; this checks it's still valid.
+    LaunchedEffect(container) { container.authRepository.verifySession() }
     CompositionLocalProvider(LocalAppContainer provides container) {
         BookWormTheme {
             val session by container.authRepository.session.collectAsStateWithLifecycle()
@@ -102,11 +106,17 @@ private fun MainContent(container: AppContainer) {
                     Tab.Learn -> LearnScreen(
                         onLessonClick = { push(Destination.Lesson(it)) },
                         onChapterClick = { push(Destination.Chapter(it)) },
+                        onJoinClass = { push(Destination.JoinClass) },
+                        onOpenLibrary = { currentTab = Tab.Library },
                     )
-                    Tab.Library -> LibraryScreen(onChapterClick = { push(Destination.Chapter(it)) })
+                    Tab.Library -> LibraryScreen(
+                        onChapterClick = { push(Destination.Chapter(it)) },
+                        onJoinClass = { push(Destination.JoinClass) },
+                    )
                     Tab.Profile -> ProfileScreen(
                         onClassClick = { currentTab = Tab.Library },
                         onJoinClass = { push(Destination.JoinClass) },
+                        onEditProfile = { push(Destination.EditProfile) },
                         onLogout = { scope.launch { container.authRepository.logout() } },
                     )
                 }
@@ -118,6 +128,9 @@ private fun MainContent(container: AppContainer) {
                 }
                 Destination.JoinClass -> ScopedViewModelStore(top) {
                     JoinClassScreen(onDone = { pop() })
+                }
+                Destination.EditProfile -> ScopedViewModelStore(top) {
+                    EditProfileScreen(onBack = { pop() })
                 }
             }
         }

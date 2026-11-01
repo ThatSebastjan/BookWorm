@@ -2,12 +2,14 @@ package com.dreamteam.bookworm.teacher.screens.curriculum
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.dreamteam.bookworm.domain.model.AssignmentTarget
 import com.dreamteam.bookworm.domain.model.ChapterSummary
 import com.dreamteam.bookworm.domain.model.Curriculum
 import com.dreamteam.bookworm.domain.model.CurriculumLesson
 import com.dreamteam.bookworm.domain.model.CurriculumLibrary
 import com.dreamteam.bookworm.domain.model.CurriculumUnit
+import com.dreamteam.bookworm.domain.model.MAX_LESSON_STARS
+import com.dreamteam.bookworm.domain.model.MIN_LESSON_STARS
+import com.dreamteam.bookworm.domain.model.PathProgress
 import com.dreamteam.bookworm.domain.model.UnlockMode
 import com.dreamteam.bookworm.domain.repository.CurriculumRepository
 import com.dreamteam.bookworm.ui.UiState
@@ -31,6 +33,10 @@ data class CurriculumUiState(
     val confirmDelete: Boolean = false,
     /** A path the teacher clicked while the open one has unsaved changes. */
     val pendingSelection: String? = null,
+    /** Showing how students are getting on with the open path, instead of editing it. */
+    val showProgress: Boolean = false,
+    /** Of the open path as last saved; null before it was first saved. */
+    val progress: UiState<PathProgress>? = null,
 ) {
     val canSave: Boolean get() = draft != null && dirty && draft.name.isNotBlank() && !saving
 }
@@ -74,10 +80,30 @@ class CurriculumViewModel(
         viewModelScope.launch {
             _state.update { it.copy(loadingDraft = true, justSaved = false, actionFailed = false) }
             when (val loaded = loadState { repository.getCurriculum(curriculumId) }) {
-                is UiState.Success -> _state.update { it.copy(draft = loaded.data, loadingDraft = false, dirty = false) }
+                is UiState.Success -> {
+                    _state.update { it.copy(draft = loaded.data, loadingDraft = false, dirty = false, progress = null) }
+                    if (_state.value.showProgress) loadProgress()
+                }
                 is UiState.Error -> _state.update { it.copy(loadingDraft = false, actionFailed = true) }
                 UiState.Loading -> Unit
             }
+        }
+    }
+
+    // Student progress
+
+    fun showProgress(show: Boolean) {
+        _state.update { it.copy(showProgress = show) }
+        if (show && _state.value.progress !is UiState.Success) loadProgress()
+    }
+
+    fun loadProgress() {
+        val id = _state.value.draft?.id?.takeIf { it.isNotEmpty() } ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(progress = UiState.Loading) }
+            val progress = loadState { repository.getProgress(id) }
+            // The teacher may have opened another path meanwhile.
+            _state.update { if (it.draft?.id == id) it.copy(progress = progress) else it }
         }
     }
 
@@ -92,13 +118,16 @@ class CurriculumViewModel(
 
     fun showNewDialog(show: Boolean) = _state.update { it.copy(showNewDialog = show) }
 
-    /** Starts an unsaved path; it is created on the server with the first save. */
-    fun startNew(name: String, subjectId: String, grade: Int) = _state.update {
+    /** Starts an unsaved path through class [subjectId]; it is created on the server with the first save. */
+    fun startNew(name: String, subjectId: String) = _state.update {
         it.copy(
-            draft = Curriculum("", name.trim(), subjectId, grade, UnlockMode.InOrder, emptyList(), emptyList()),
+            // The grade comes from the class once saved.
+            draft = Curriculum("", name.trim(), subjectId, grade = 0, UnlockMode.InOrder, emptyList(), emptyList()),
             dirty = true,
             showNewDialog = false,
             justSaved = false,
+            showProgress = false,
+            progress = null,
         )
     }
 
@@ -108,8 +137,8 @@ class CurriculumViewModel(
 
     fun setUnlockMode(mode: UnlockMode) = edit { it.copy(unlockMode = mode) }
 
-    fun toggleTarget(target: AssignmentTarget) = edit {
-        it.copy(assignedTo = if (target in it.assignedTo) it.assignedTo - target else it.assignedTo + target)
+    fun toggleTarget(classroomId: String) = edit {
+        it.copy(assignedTo = if (classroomId in it.assignedTo) it.assignedTo - classroomId else it.assignedTo + classroomId)
     }
 
     /** Adds [chapter] at the end with a practice lesson and a chapter quiz, titled in the teacher's language. */
@@ -119,7 +148,7 @@ class CurriculumViewModel(
         path.copy(units = path.units + CurriculumUnit(chapter, lessons))
     }
 
-    /** Creates a new shared chapter in the path's subject and adds it to the path. */
+    /** Creates a new chapter at the end of the path's class and adds it to the path. */
     fun createChapter(title: String, practiseTitle: String, quizTitle: String) {
         val subjectId = _state.value.draft?.subjectId ?: return
         if (title.isBlank()) return
@@ -156,6 +185,12 @@ class CurriculumViewModel(
         it[lessonIndex] = it[lessonIndex].copy(isChapterQuiz = !it[lessonIndex].isChapterQuiz)
     }
 
+    /** Stars for finishing the lesson the first time; anything but a number is ignored, and it is kept in range. */
+    fun setLessonStars(unitIndex: Int, lessonIndex: Int, text: String) = editLessons(unitIndex) {
+        val stars = text.filter(Char::isDigit).take(3).toIntOrNull() ?: MIN_LESSON_STARS
+        it[lessonIndex] = it[lessonIndex].copy(stars = stars.coerceIn(MIN_LESSON_STARS, MAX_LESSON_STARS))
+    }
+
     fun removeLesson(unitIndex: Int, lessonIndex: Int) = editLessons(unitIndex) { it.removeAt(lessonIndex) }
 
     fun moveLesson(unitIndex: Int, lessonIndex: Int, by: Int) = editLessons(unitIndex) { it.move(lessonIndex, by) }
@@ -189,8 +224,8 @@ class CurriculumViewModel(
             _state.update { it.copy(saving = true, actionFailed = false) }
             when (val saved = loadState { repository.saveCurriculum(draft.copy(name = draft.name.trim())) }) {
                 is UiState.Success -> {
-                    _state.update { it.copy(draft = saved.data, saving = false, dirty = false, justSaved = true) }
-                    // Saving can move classes off other paths of the same subject, so refresh the list.
+                    _state.update { it.copy(draft = saved.data, saving = false, dirty = false, justSaved = true, progress = null) }
+                    // Saving can move classrooms off other paths of the same class, so refresh the list.
                     refreshLibrary()
                 }
                 is UiState.Error -> _state.update { it.copy(saving = false, actionFailed = true) }

@@ -26,11 +26,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import bookworm.shared.generated.resources.Res
 import bookworm.shared.generated.resources.flashcards_count
+import bookworm.shared.generated.resources.join_class_title
+import bookworm.shared.generated.resources.library_empty_body
+import bookworm.shared.generated.resources.library_empty_title
 import bookworm.shared.generated.resources.library_status_known
 import bookworm.shared.generated.resources.library_status_mastered
 import bookworm.shared.generated.resources.library_status_new
@@ -42,18 +46,20 @@ import com.dreamteam.bookworm.domain.model.ChapterSummary
 import com.dreamteam.bookworm.domain.model.Subject
 import com.dreamteam.bookworm.ui.UiState
 import com.dreamteam.bookworm.ui_components.BadgeTile
+import com.dreamteam.bookworm.ui_components.BookWormButton
 import com.dreamteam.bookworm.ui_components.BookWormCard
 import com.dreamteam.bookworm.ui_components.BookWormColors
 import com.dreamteam.bookworm.ui_components.BookWormProgressBar
 import com.dreamteam.bookworm.ui_components.ChoiceChip
 import com.dreamteam.bookworm.ui_components.ErrorView
 import com.dreamteam.bookworm.ui_components.LoadingView
+import com.dreamteam.bookworm.ui_components.MascotIcon
 import com.dreamteam.bookworm.ui_components.StateContent
 import org.jetbrains.compose.resources.pluralStringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun LibraryScreen(onChapterClick: (chapterId: String) -> Unit) {
+fun LibraryScreen(onChapterClick: (chapterId: String) -> Unit, onJoinClass: () -> Unit) {
     val container = LocalAppContainer.current
     val viewModel = viewModel { LibraryViewModel(container.libraryRepository) }
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -61,6 +67,10 @@ fun LibraryScreen(onChapterClick: (chapterId: String) -> Unit) {
     LaunchedEffect(Unit) { viewModel.refresh() }
 
     StateContent(state.subjects, onRetry = viewModel::load) { subjects ->
+        if (subjects.isEmpty()) {
+            NoClasses(onJoinClass)
+            return@StateContent
+        }
         LibraryContent(
             subjects = subjects,
             selectedSubjectId = state.selectedSubjectId,
@@ -104,6 +114,33 @@ private fun LibraryContent(
             is UiState.Error -> item { ErrorView(onRetryChapters, Modifier.height(360.dp)) }
             is UiState.Success -> items(chapters.data, key = { it.id }) { chapter ->
                 ChapterCard(chapter, onClick = { onChapterClick(chapter.id) })
+            }
+        }
+    }
+}
+
+/** Before the student is in any class there is nothing to list. */
+@Composable
+private fun NoClasses(onJoinClass: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().background(BookWormColors.Background).padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(stringResource(Res.string.library_title), style = MaterialTheme.typography.headlineLarge, color = BookWormColors.Ink)
+            Text(stringResource(Res.string.library_subtitle), style = MaterialTheme.typography.bodyMedium, color = BookWormColors.InkMuted)
+        }
+        BookWormCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                MascotIcon(Modifier.size(72.dp))
+                Text(stringResource(Res.string.library_empty_title), style = MaterialTheme.typography.titleMedium, color = BookWormColors.Ink)
+                Text(
+                    stringResource(Res.string.library_empty_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = BookWormColors.InkMuted,
+                    textAlign = TextAlign.Center,
+                )
+                BookWormButton(stringResource(Res.string.join_class_title), onClick = onJoinClass, modifier = Modifier.fillMaxWidth())
             }
         }
     }

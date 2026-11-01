@@ -37,16 +37,28 @@
     <string name="library_status_mastered">Mastered</string>
     <string name="library_status_new">New</string>
     <string name="library_status_known">%1$d of %2$d known</string>
+    <string name="library_empty_title">No classes yet</string>
+    <string name="library_empty_body">Join your teacher's class with the code they gave you. Its notes and flashcards will show up here.</string>
 
     <!-- Learn -->
     <string name="learn_change_subject">Change subject, currently %1$s</string>
     <string name="learn_chapter_progress">Chapter %1$d · %2$d of %3$d done</string>
     <string name="learn_notes">Notes</string>
-    <string name="learn_next_chapter">Next · Chapter %1$d</string>
     <string name="learn_start">Start</string>
     <string name="learn_lesson_done">%1$s, done</string>
     <string name="learn_lesson_locked">%1$s, locked</string>
     <string name="learn_lesson_start">Start lesson: %1$s</string>
+    <plurals name="learn_lesson_stars">
+        <item quantity="one">%1$d star to earn</item>
+        <item quantity="other">%1$d stars to earn</item>
+    </plurals>
+    <string name="learn_empty_body">Join a class with the code your teacher gave you. Your lessons will show up here.</string>
+    <string name="learn_no_path_title">No learning path yet</string>
+    <string name="learn_no_path_body">Your teacher hasn't set up the lessons for %1$s yet. You can already read the notes and practise the flashcards in the Library.</string>
+    <string name="learn_open_library">Open the Library</string>
+    <string name="learn_path_done">You finished every lesson on this path. Well done!</string>
+    <string name="learn_all_chapters">All chapters</string>
+    <string name="learn_chapter_number">Chapter %1$d</string>
 
     <!-- Chapter -->
     <string name="chapter_eyebrow">%1$s · Chapter %2$d</string>
@@ -55,13 +67,19 @@
     <string name="chapter_notes_by">Notes by %1$s</string>
     <string name="chapter_remember">Remember</string>
     <string name="chapter_practise">Practise with flashcards</string>
-    <string name="chapter_card_of">Card %1$d of %2$d</string>
     <string name="chapter_card_word">Word</string>
     <string name="chapter_card_meaning">Meaning</string>
     <string name="chapter_tap_to_flip">Tap to flip</string>
     <string name="chapter_still_learning">Still learning</string>
     <string name="chapter_got_it">Got it</string>
     <string name="chapter_no_flashcards">No flashcards in this chapter yet.</string>
+    <string name="chapter_mastered_body">Great work! Start over whenever you want to go through them again.</string>
+    <string name="chapter_start_over">Start over</string>
+    <string name="chapter_start_over_failed">Couldn't start over. Check your internet and try again.</string>
+    <plurals name="chapter_mastered_title">
+        <item quantity="one">You know this card!</item>
+        <item quantity="other">You know all %1$d cards!</item>
+    </plurals>
 
     <!-- Lesson -->
     <string name="lesson_close">Close lesson</string>
@@ -80,10 +98,7 @@
     <string name="lesson_your_answer">Your answer</string>
     <string name="lesson_blank_empty">Empty blank</string>
     <string name="lesson_blank_filled">Blank filled with %1$s. Tap to clear.</string>
-    <plurals name="lesson_correct_title">
-        <item quantity="one">Nice one! +%1$d star</item>
-        <item quantity="other">Nice one! +%1$d stars</item>
-    </plurals>
+    <string name="lesson_correct_title">Nice one!</string>
     <string name="lesson_wrong_title">Not quite</string>
     <string name="lesson_leave_title">Leave the lesson?</string>
     <string name="lesson_leave_body">Your progress in this lesson won't be saved.</string>
@@ -96,6 +111,11 @@
         <item quantity="other">You earned %1$d stars</item>
     </plurals>
     <string name="lesson_finish">Done</string>
+    <string name="lesson_complete_no_stars">You already earned the stars for this lesson. Practice makes perfect!</string>
+    <plurals name="lesson_stars_to_win">
+        <item quantity="one">Finish to earn %1$d star</item>
+        <item quantity="other">Finish to earn %1$d stars</item>
+    </plurals>
 
     <!-- Profile -->
     <string name="profile_grade">Grade %1$d</string>
@@ -110,6 +130,36 @@
     <string name="profile_chapter_of">Chapter %1$d of %2$d</string>
     <string name="profile_badges">Badges</string>
     <string name="profile_badge_locked">%1$s (locked)</string>
+    <string name="edit_profile_title">Edit profile</string>
+    <string name="edit_profile_open">Edit profile</string>
+    <string name="edit_profile_details">Your name</string>
+    <string name="edit_profile_email_hint">You sign in with your email, so it can't be changed.</string>
+    <string name="edit_profile_save">Save</string>
+    <string name="edit_profile_saved">Saved!</string>
+    <string name="edit_profile_password">Password</string>
+    <string name="edit_profile_current_password">Current password</string>
+    <string name="edit_profile_new_password">New password</string>
+    <string name="edit_profile_change_password">Change password</string>
+    <string name="edit_profile_password_changed">Your password is changed.</string>
+    <string name="edit_profile_wrong_password">That isn't your current password.</string>
+    <string name="profile_streak_keep">Practise today to keep your %1$d-day streak going!</string>
+    <string name="profile_streak_safe">You practised today. Your streak is safe!</string>
+    <string name="profile_badge_progress">%1$s, %2$d of %3$d</string>
+    <string name="profile_badge_chapter_done">Chapter finished</string>
+    <plurals name="profile_badge_lessons">
+        <item quantity="one">%1$d lesson</item>
+        <item quantity="other">%1$d lessons</item>
+    </plurals>
+    <plurals name="profile_badge_streak">
+        <item quantity="one">%1$d-day streak</item>
+        <item quantity="other">%1$d-day streak</item>
+    </plurals>
+    <plurals name="profile_badge_stars">
+        <item quantity="one">%1$d star</item>
+        <item quantity="other">%1$d stars</item>
+    </plurals>
+    <string name="profile_badge_first_lesson">First lesson</string>
+    <string name="profile_badge_chapter_quiz">Chapter quiz</string>
     <string name="profile_day_practised">%1$s, practised</string>
     <string name="profile_day_not_yet">%1$s, not yet</string>
     <string-array name="profile_weekday_initials">
@@ -135,8 +185,9 @@
     <string name="auth_login_title">Welcome back!</string>
     <string name="auth_login_subtitle">Sign in to keep learning.</string>
     <string name="auth_register_title">Create your account</string>
-    <string name="auth_register_subtitle">Ask your teacher for your class code.</string>
-    <string name="auth_name">Your name</string>
+    <string name="auth_register_subtitle">It only takes a minute.</string>
+    <string name="auth_name">Name</string>
+    <string name="auth_surname">Surname</string>
     <string name="auth_email">Email</string>
     <string name="auth_password">Password</string>
     <string name="auth_class_code">Class code</string>
@@ -149,10 +200,11 @@
     <string name="auth_go_login">Sign in</string>
     <string name="auth_error_required">Please fill this in.</string>
     <string name="auth_error_email">Enter a valid email address.</string>
-    <string name="auth_error_password_short">Use at least %1$d characters.</string>
+    <string name="auth_error_password_short">Use at least %1$d characters, with at least one letter and one number.</string>
     <string name="auth_error_credentials">Wrong email or password.</string>
     <string name="auth_error_email_taken">There is already an account with this email.</string>
-    <string name="auth_error_class_code">We couldn't find that class code. Check it with your teacher.</string>
+    <string name="auth_error_wrong_role">This account can't sign in to this app.</string>
+    <string name="auth_error_invalid_details">Some details weren't accepted. Check them and try again.</string>
     <string name="auth_error_network">Couldn't connect. Check your internet and try again.</string>
     <string name="auth_logout">Log out</string>
     <string name="auth_logout_title">Log out?</string>
