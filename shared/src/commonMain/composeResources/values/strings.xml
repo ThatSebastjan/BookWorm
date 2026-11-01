@@ -216,7 +216,7 @@
     <string name="lesson_not_ready_body">Your teacher is still writing the questions. Try another lesson for now.</string>
 
     <!-- Joining a class -->
-    <string name="profile_classes">My classes</string>
+    <string name="profile_classes">My classrooms</string>
     <string name="profile_class_waiting">Waiting</string>
     <string name="join_class_title">Join a class</string>
     <string name="join_class_subtitle">Type the code your teacher gave you. You can also paste their join link.</string>
